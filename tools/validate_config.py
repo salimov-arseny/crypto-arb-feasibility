@@ -16,6 +16,9 @@
    код, если чего-то не хватает для расчёта, - чтобы нельзя было случайно
    запустить пайплайн на дырявом конфиге и получить красивые, но пустые числа.
 
+Подробный список недостающего с единицами и пояснениями собирает другой
+инструмент: tools/apply_fees.py --spec -> docs/values_to_fetch.md.
+
 Запуск:  .venv/bin/python -u tools/validate_config.py [--live]
 """
 
@@ -205,87 +208,6 @@ def collect_pending(cfg: dict) -> tuple[dict[str, list[str]], int]:
     return pending, count
 
 
-# Где искать каждое незаполненное значение. Привязано к полям конфига,
-# чтобы перенос чисел обратно был механическим и не требовал догадок.
-WHERE_TO_LOOK = {
-    "taker_fee": (
-        "Тарифная страница биржи, раздел спота, уровень без VIP и без скидки "
-        "за удержание токена биржи. Записать ставку тейкера как долю "
-        "(0,1 % -> 0.001). Осторожно: у Kraken две схемы, нужна Kraken Pro "
-        "по стакану, а не мгновенная покупка в приложении."
-    ),
-    "withdrawal_fee": (
-        "Страница вывода монеты, после выбора сети. Комиссия указана "
-        "в самой монете, не в USDT."
-    ),
-    "min_withdrawal": (
-        "Там же: минимальная сумма вывода, в монете."
-    ),
-    "confirmations": (
-        "Там же или в справке биржи: сколько подтверждений сети требуется "
-        "для зачисления. Это политика биржи, у каждой своя."
-    ),
-    "block_time_sec": (
-        "Свойство самой сети, а не биржи: целевое время между блоками "
-        "в секундах. Вместе с числом подтверждений даёт время перевода."
-    ),
-}
-
-
-def write_checklist(cfg: dict, pending: dict[str, list[str]], total: int) -> pathlib.Path:
-    """Выгружаем незаполненное в файл, пригодный для заполнения вручную."""
-    out = ROOT / "docs" / "config_pending.md"
-    out.parent.mkdir(exist_ok=True)
-
-    lines = [
-        "# Незаполненные значения config.yaml",
-        "",
-        "Сгенерировано `tools/validate_config.py --checklist`; "
-        "не редактировать руками — файл перезаписывается.",
-        "",
-        "Заполнять значениями, которые реально видны на странице. "
-        "К каждому — откуда взято и когда. Если значение относится "
-        "к конкретному аккаунту, а не к базовому тарифу, это надо написать.",
-        "",
-    ]
-
-    lines += ["## Комиссии тейкера", "", f"_{WHERE_TO_LOOK['taker_fee']}_", ""]
-    for key, ex in cfg["exchanges"].items():
-        if ex.get("taker_fee") is None:
-            lines += [
-                f"- [ ] **{ex['display_name']}** `exchanges.{key}.taker_fee`",
-                "      значение: ______   источник: ______   дата: ______",
-            ]
-    lines.append("")
-
-    lines += ["## Сети вывода", ""]
-    for coin, nets in cfg.get("networks", {}).items():
-        for net in nets:
-            lines += [f"### {coin} — {net['name']} (`{net['code']}`)", ""]
-            if net.get("block_time_sec") is None:
-                lines += [
-                    f"- [ ] `block_time_sec` — {WHERE_TO_LOOK['block_time_sec']}",
-                    "      значение: ______ с   источник: ______   дата: ______",
-                    "",
-                ]
-            for field in ("withdrawal_fee", "min_withdrawal", "confirmations"):
-                missing = sorted(e for e, v in (net.get(field) or {}).items()
-                                 if v is None)
-                if not missing:
-                    continue
-                lines += [f"- [ ] `{field}` — {WHERE_TO_LOOK[field]}", ""]
-                for e in missing:
-                    lines.append(f"      - {e}: ______")
-                lines.append("")
-
-    lines += ["---", "",
-              f"Всего значений: {total}. Строка вида "
-              f"`withdrawal_fee -> binance, bybit, kraken, okx` - это четыре "
-              f"числа, а не одно."]
-    out.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return out
-
-
 def main(argv: list[str]) -> int:
     live = "--live" in argv
     cfg = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
@@ -342,10 +264,6 @@ def main(argv: list[str]) -> int:
                 print(f"    - {it}")
     else:
         print("  порядок: незаполненных значений нет")
-
-    if "--checklist" in argv:
-        out = write_checklist(cfg, pending, total_pending)
-        print(f"\n  чек-лист записан в {out.relative_to(ROOT)}")
 
     print("\n" + "=" * 72)
     blocking = structure + types + drift

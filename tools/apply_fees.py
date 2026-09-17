@@ -10,9 +10,7 @@
 Работает в два приёма.
 
   --template  собирает data/fees_input.yaml: по записи на каждое незаполненное
-              поле конфига. Поле value пустое, его заполняешь ты. Поле source
-              заранее заполнено ссылками из fees.md, если для этого поля они
-              там нашлись.
+              поле конфига. Поля value, source и checked заполняешь ты.
 
   (без ключа) читает data/fees_input.yaml и вносит заполненные значения
               в config.yaml. Комментарии конфига при этом сохраняются -
@@ -35,7 +33,6 @@ from ruamel.yaml import YAML
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "config.yaml"
-FEES_MD = ROOT / "fees.md"
 INPUT = ROOT / "data" / "fees_input.yaml"
 
 yaml_rt = YAML()                 # round-trip: сохраняет комментарии и порядок
@@ -79,49 +76,6 @@ yaml_rt.representer.add_representer(float, _represent_float)
 
 
 # --------------------------------------------------------------------------
-#  Ссылки из fees.md
-# --------------------------------------------------------------------------
-
-def parse_fees_md() -> dict[str, list[str]]:
-    """Собираем ссылки по разделам fees.md.
-
-    Файл содержит не значения, а указания, где смотреть. Раскладываем его
-    на разделы по заголовкам и собираем из каждого адреса - чтобы подставить
-    их в заготовку как кандидатов в источники. Какой именно адрес дал число,
-    решает человек: подставлять это автоматически было бы выдумыванием.
-    """
-    if not FEES_MD.exists():
-        return {}
-    sections: dict[str, list[str]] = {}
-    current = "начало"
-    for line in FEES_MD.read_text(encoding="utf-8").splitlines():
-        heading = re.match(r"^#{3,4}\s+(.*)$", line.strip())
-        if heading:
-            current = re.sub(r"[*_`]", "", heading.group(1)).strip()
-            sections.setdefault(current, [])
-            continue
-        for url in re.findall(r"https?://[^\s<>()\[\],]+", line):
-            sections.setdefault(current, []).append(url.rstrip(".,"))
-    return {k: list(dict.fromkeys(v)) for k, v in sections.items() if v}
-
-
-def hints_for(exchange: str, field: str, md: dict[str, list[str]]) -> list[str]:
-    """Подбираем ссылки из fees.md, относящиеся к бирже и типу значения."""
-    urls: list[str] = []
-    want_fee = field == "taker_fee"
-    for title, links in md.items():
-        low = title.lower()
-        if exchange.lower() not in low and not (want_fee and "комисс" in low):
-            continue
-        urls += links
-    # Отбрасываем чужие домены: в разделе про комиссии тейкера лежат
-    # ссылки сразу на все биржи.
-    host = {"binance": "binance.com", "bybit": "bybit.com",
-            "okx": "okx.com", "kraken": "kraken.com"}[exchange]
-    return [u for u in dict.fromkeys(urls) if host in u]
-
-
-# --------------------------------------------------------------------------
 #  Заготовка
 # --------------------------------------------------------------------------
 
@@ -133,9 +87,9 @@ HEADER = """\
 #   value    - число, ровно как показано на странице. Комиссия тейкера
 #              записывается долей: 0,1 % -> 0.001. Комиссия и минимум
 #              вывода - в самой монете, не в USDT. Подтверждения - целое.
-#   source   - адрес страницы, с которой списано. Одна ссылка, не список.
-#              В source_candidates лежат адреса из fees.md - можно взять
-#              оттуда, если смотрел именно там.
+#   source   - откуда списано: адрес страницы или описание источника.
+#              Если источник вторичный (пересказ, сводка), так и пиши -
+#              это попадёт в комментарий config.yaml как есть.
 #   checked  - дата просмотра, ГГГГ-ММ-ДД.
 #   account  - true, если значение относится к твоему аккаунту, а не
 #              к базовому тарифу (например, действует скидка).
@@ -148,7 +102,6 @@ HEADER = """\
 
 
 def build_template(cfg) -> str:
-    md = parse_fees_md()
     rows: list[str] = []
 
     rows.append("values:")
@@ -157,8 +110,7 @@ def build_template(cfg) -> str:
         if ex.get("taker_fee") is not None:
             continue
         rows += _entry(f"exchanges.{key}.taker_fee",
-                       f"{ex['display_name']}: комиссия тейкера, долей",
-                       hints_for(key, "taker_fee", md))
+                       f"{ex['display_name']}: комиссия тейкера, долей")
 
     for coin, nets in cfg.get("networks", {}).items():
         for net in nets:
@@ -171,24 +123,19 @@ def build_template(cfg) -> str:
                         continue
                     rows += _entry(
                         f"networks.{coin}.{code}.{field}.{exch}",
-                        f"{coin}/{code}, {exch}: {field}, {unit}",
-                        hints_for(exch, field, md))
+                        f"{coin}/{code}, {exch}: {field}, {unit}")
 
     return HEADER + "\n" + "\n".join(rows) + "\n"
 
 
-def _entry(path: str, comment: str, candidates: list[str]) -> list[str]:
-    lines = [f"  # {comment}",
-             f"  - path: {path}",
-             "    value: null",
-             "    source: null",
-             "    checked: null",
-             "    account: false"]
-    if candidates:
-        lines.append("    source_candidates:")
-        lines += [f"      - {u}" for u in candidates]
-    lines.append("")
-    return lines
+def _entry(path: str, comment: str) -> list[str]:
+    return [f"  # {comment}",
+            f"  - path: {path}",
+            "    value: null",
+            "    source: null",
+            "    checked: null",
+            "    account: false",
+            ""]
 
 
 # --------------------------------------------------------------------------
@@ -354,9 +301,6 @@ def main(argv: list[str]) -> int:
         INPUT.write_text(build_template(cfg), encoding="utf-8")
         n = build_template(cfg).count("- path:")
         print(f"Заготовка на {n} значений записана в {INPUT.relative_to(ROOT)}")
-        md = parse_fees_md()
-        print(f"Ссылок разобрано из fees.md: "
-              f"{sum(len(v) for v in md.values())} в {len(md)} разделах")
         return 0
 
     if not src.exists():

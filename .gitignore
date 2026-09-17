@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 .pytest_cache/
+
+# Генерируется tools/apply_fees.py --template под текущее состояние конфига.
+# В репозиторий не кладём: он устаревает при каждом внесённом значении.
+data/fees_input.yaml
