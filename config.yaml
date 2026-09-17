@@ -227,7 +227,12 @@ networks:
     #   указаны и комиссия, и минимум, и число подтверждений.
     - name: Bitcoin
       code: BTC
-      block_time_sec: null          # в работе: целевое время блока сети
+      # источник: протокол Bitcoin, целевой интервал 1 209 600 с на 2 016
+      #   блоков между перерасчётами сложности = 600 с на блок.
+      #   Цитата подтверждена на developer.bitcoin.org/devguide/block_chain.html,
+      #   просмотрено 2026-09-17. Фактический интервал случаен и колеблется
+      #   вокруг цели - сложность пересчитывается именно ради её удержания.
+      block_time_sec: 600.0
       withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
       min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
       confirmations: {binance: null, bybit: null, okx: null, kraken: null}
@@ -240,13 +245,20 @@ networks:
     # биржами пары. Поддержка сети конкретной биржей тоже требует проверки.
     - name: Ethereum
       code: ERC20
-      block_time_sec: null
+      # источник: api, замер по 200 последним блокам через публичный узел
+      #   ethereum-rpc.publicnode.com, 2026-09-17 20:15 UTC -> ровно 12,0000 с.
+      #   Сходится с документацией ethereum.org/en/developers/docs/blocks/:
+      #   после перехода на proof-of-stake слот равен 12 с.
+      #   Прогон: tools/measure_block_times.py
+      block_time_sec: 12.0
       withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
       min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
       confirmations: {binance: null, bybit: null, okx: null, kraken: null}
     - name: Arbitrum One
       code: ARBITRUM
-      block_time_sec: null
+      # источник: api, замер по 200 последним блокам через arb1.arbitrum.io/rpc,
+      #   2026-09-17 20:15 UTC -> 0,2500 с. Прогон: tools/measure_block_times.py
+      block_time_sec: 0.25
       supported: {binance: null, bybit: null, okx: null, kraken: null}
       withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
       min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
@@ -255,7 +267,14 @@ networks:
   SOL:
     - name: Solana
       code: SOL
-      block_time_sec: null
+      # источник: api, getRecentPerformanceSamples у api.mainnet-beta.solana.com,
+      #   20 образцов, 3 772 слота, 2026-09-17 20:15 UTC ->
+      #   среднее 0,3182 с, медиана 0,3175 с.
+      #   Замечание: это быстрее общеизвестного целевого значения 400 мс,
+      #   поэтому взято измеренное, а не заявленное. Число стоит
+      #   перемерить перед финальным прогоном: оно плавает с загрузкой сети.
+      #   Прогон: tools/measure_block_times.py
+      block_time_sec: 0.3182
       withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
       min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
       confirmations: {binance: null, bybit: null, okx: null, kraken: null}

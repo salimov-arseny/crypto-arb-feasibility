@@ -1,0 +1,11 @@
+Фактическое время блока. Время запуска (UTC): 2026-09-17 20:15:06
+
+Solana         0.3182 с, медиана 0.3175 с
+               по 3,772 блокам; getRecentPerformanceSamples, 20 образцов
+Arbitrum One   0.2500 с
+               по 200 блокам; eth_getBlockByNumber, разница меток времени
+Ethereum       12.0000 с
+               по 200 блокам; eth_getBlockByNumber, разница меток времени
+Bitcoin        600.0000 с (целевой интервал протокола)
+
+Сохранено в logs/block_times_raw.json
