@@ -111,25 +111,35 @@ def check_against_exchange(cfg: dict, live: bool) -> tuple[list[str], list[str]]
     return problems, skipped
 
 
-def collect_pending(cfg: dict) -> dict[str, list[str]]:
-    """Собираем всё, что помечено null, - то есть «в работе»."""
+def collect_pending(cfg: dict) -> tuple[dict[str, list[str]], int]:
+    """Собираем всё, что помечено null, - то есть «в работе».
+
+    Возвращаем и строки отчёта, и честное число незаполненных значений.
+    Это разные величины: строка «withdrawal_fee -> binance, bybit, kraken, okx»
+    выглядит как один пункт, а стоит за ней четыре числа. Считать строки
+    вместо значений - значит втрое занижать объём работы.
+    """
     pending: dict[str, list[str]] = {"комиссии": [], "сети вывода": []}
+    count = 0
 
     for key, ex in cfg["exchanges"].items():
         if ex.get("taker_fee") is None:
             pending["комиссии"].append(f"{ex['display_name']}: taker_fee")
+            count += 1
 
     for coin, nets in cfg.get("networks", {}).items():
         for net in nets:
             label = f"{coin}/{net['code']}"
             if net.get("block_time_sec") is None:
                 pending["сети вывода"].append(f"{label}: block_time_sec")
+                count += 1
             for field in ("withdrawal_fee", "min_withdrawal", "confirmations"):
                 missing = [e for e, v in (net.get(field) or {}).items() if v is None]
                 if missing:
                     pending["сети вывода"].append(
                         f"{label}: {field} -> {', '.join(sorted(missing))}")
-    return pending
+                    count += len(missing)
+    return pending, count
 
 
 # Где искать каждое незаполненное значение. Привязано к полям конфига,
@@ -159,7 +169,7 @@ WHERE_TO_LOOK = {
 }
 
 
-def write_checklist(cfg: dict, pending: dict[str, list[str]]) -> pathlib.Path:
+def write_checklist(cfg: dict, pending: dict[str, list[str]], total: int) -> pathlib.Path:
     """Выгружаем незаполненное в файл, пригодный для заполнения вручную."""
     out = ROOT / "docs" / "config_pending.md"
     out.parent.mkdir(exist_ok=True)
@@ -205,8 +215,10 @@ def write_checklist(cfg: dict, pending: dict[str, list[str]]) -> pathlib.Path:
                     lines.append(f"      - {e}: ______")
                 lines.append("")
 
-    total = sum(len(v) for v in pending.values())
-    lines += ["---", "", f"Всего пунктов: {total}."]
+    lines += ["---", "",
+              f"Всего значений: {total}. Строка вида "
+              f"`withdrawal_fee -> binance, bybit, kraken, okx` - это четыре "
+              f"числа, а не одно."]
     out.write_text("\n".join(lines) + "\n", encoding="utf-8")
     return out
 
@@ -238,10 +250,11 @@ def main(argv: list[str]) -> int:
         print(f"  порядок: {n} значений совпали со значениями биржи")
 
     print("\n3. Полнота")
-    pending = collect_pending(cfg)
-    total_pending = sum(len(v) for v in pending.values())
+    pending, total_pending = collect_pending(cfg)
+    lines_pending = sum(len(v) for v in pending.values())
     if total_pending:
-        print(f"  в работе, всего пунктов: {total_pending}")
+        print(f"  в работе: {total_pending} значений "
+              f"в {lines_pending} строках отчёта")
         for group, items in pending.items():
             if not items:
                 continue
@@ -252,7 +265,7 @@ def main(argv: list[str]) -> int:
         print("  порядок: незаполненных значений нет")
 
     if "--checklist" in argv:
-        out = write_checklist(cfg, pending)
+        out = write_checklist(cfg, pending, total_pending)
         print(f"\n  чек-лист записан в {out.relative_to(ROOT)}")
 
     print("\n" + "=" * 72)

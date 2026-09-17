@@ -1,0 +1,546 @@
+# Значения для переноса в config.yaml.
+#
+# Этот файл заполняешь ты, скрипт только переносит. Правила простые.
+#
+#   value    - число, ровно как показано на странице. Комиссия тейкера
+#              записывается долей: 0,1 % -> 0.001. Комиссия и минимум
+#              вывода - в самой монете, не в USDT. Подтверждения - целое.
+#   source   - адрес страницы, с которой списано. Одна ссылка, не список.
+#              В source_candidates лежат адреса из fees.md - можно взять
+#              оттуда, если смотрел именно там.
+#   checked  - дата просмотра, ГГГГ-ММ-ДД.
+#   account  - true, если значение относится к твоему аккаунту, а не
+#              к базовому тарифу (например, действует скидка).
+#
+# Запись без source или без checked не переносится: значение без
+# происхождения в конфиге бесполезно.
+#
+# Перенести:  .venv/bin/python -u tools/apply_fees.py
+
+values:
+  # Bybit: комиссия тейкера, долей
+  - path: exchanges.bybit.taker_fee
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/help-center/article/Trading-Fee-Structure
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # OKX: комиссия тейкера, долей
+  - path: exchanges.okx.taker_fee
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # Kraken: комиссия тейкера, долей
+  - path: exchanges.kraken.taker_fee
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.kraken.com/features/fee-schedule
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # BTC/BTC, binance: withdrawal_fee, в BTC
+  - path: networks.BTC.BTC.withdrawal_fee.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # BTC/BTC, bybit: withdrawal_fee, в BTC
+  - path: networks.BTC.BTC.withdrawal_fee.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # BTC/BTC, kraken: withdrawal_fee, в BTC
+  - path: networks.BTC.BTC.withdrawal_fee.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # BTC/BTC, okx: withdrawal_fee, в BTC
+  - path: networks.BTC.BTC.withdrawal_fee.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # BTC/BTC, binance: min_withdrawal, в BTC
+  - path: networks.BTC.BTC.min_withdrawal.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # BTC/BTC, bybit: min_withdrawal, в BTC
+  - path: networks.BTC.BTC.min_withdrawal.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # BTC/BTC, kraken: min_withdrawal, в BTC
+  - path: networks.BTC.BTC.min_withdrawal.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # BTC/BTC, okx: min_withdrawal, в BTC
+  - path: networks.BTC.BTC.min_withdrawal.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # BTC/BTC, binance: confirmations, целое число блоков
+  - path: networks.BTC.BTC.confirmations.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # BTC/BTC, bybit: confirmations, целое число блоков
+  - path: networks.BTC.BTC.confirmations.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # BTC/BTC, kraken: confirmations, целое число блоков
+  - path: networks.BTC.BTC.confirmations.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # BTC/BTC, okx: confirmations, целое число блоков
+  - path: networks.BTC.BTC.confirmations.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # ETH/ERC20, binance: withdrawal_fee, в ETH
+  - path: networks.ETH.ERC20.withdrawal_fee.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # ETH/ERC20, bybit: withdrawal_fee, в ETH
+  - path: networks.ETH.ERC20.withdrawal_fee.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # ETH/ERC20, kraken: withdrawal_fee, в ETH
+  - path: networks.ETH.ERC20.withdrawal_fee.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # ETH/ERC20, okx: withdrawal_fee, в ETH
+  - path: networks.ETH.ERC20.withdrawal_fee.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # ETH/ERC20, binance: min_withdrawal, в ETH
+  - path: networks.ETH.ERC20.min_withdrawal.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # ETH/ERC20, bybit: min_withdrawal, в ETH
+  - path: networks.ETH.ERC20.min_withdrawal.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # ETH/ERC20, kraken: min_withdrawal, в ETH
+  - path: networks.ETH.ERC20.min_withdrawal.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # ETH/ERC20, okx: min_withdrawal, в ETH
+  - path: networks.ETH.ERC20.min_withdrawal.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # ETH/ERC20, binance: confirmations, целое число блоков
+  - path: networks.ETH.ERC20.confirmations.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # ETH/ERC20, bybit: confirmations, целое число блоков
+  - path: networks.ETH.ERC20.confirmations.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # ETH/ERC20, kraken: confirmations, целое число блоков
+  - path: networks.ETH.ERC20.confirmations.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # ETH/ERC20, okx: confirmations, целое число блоков
+  - path: networks.ETH.ERC20.confirmations.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # ETH/ARBITRUM, binance: withdrawal_fee, в ETH
+  - path: networks.ETH.ARBITRUM.withdrawal_fee.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # ETH/ARBITRUM, bybit: withdrawal_fee, в ETH
+  - path: networks.ETH.ARBITRUM.withdrawal_fee.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # ETH/ARBITRUM, kraken: withdrawal_fee, в ETH
+  - path: networks.ETH.ARBITRUM.withdrawal_fee.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # ETH/ARBITRUM, okx: withdrawal_fee, в ETH
+  - path: networks.ETH.ARBITRUM.withdrawal_fee.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # ETH/ARBITRUM, binance: min_withdrawal, в ETH
+  - path: networks.ETH.ARBITRUM.min_withdrawal.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # ETH/ARBITRUM, bybit: min_withdrawal, в ETH
+  - path: networks.ETH.ARBITRUM.min_withdrawal.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # ETH/ARBITRUM, kraken: min_withdrawal, в ETH
+  - path: networks.ETH.ARBITRUM.min_withdrawal.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # ETH/ARBITRUM, okx: min_withdrawal, в ETH
+  - path: networks.ETH.ARBITRUM.min_withdrawal.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # ETH/ARBITRUM, binance: confirmations, целое число блоков
+  - path: networks.ETH.ARBITRUM.confirmations.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # ETH/ARBITRUM, bybit: confirmations, целое число блоков
+  - path: networks.ETH.ARBITRUM.confirmations.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # ETH/ARBITRUM, kraken: confirmations, целое число блоков
+  - path: networks.ETH.ARBITRUM.confirmations.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # ETH/ARBITRUM, okx: confirmations, целое число блоков
+  - path: networks.ETH.ARBITRUM.confirmations.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # SOL/SOL, binance: withdrawal_fee, в SOL
+  - path: networks.SOL.SOL.withdrawal_fee.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # SOL/SOL, bybit: withdrawal_fee, в SOL
+  - path: networks.SOL.SOL.withdrawal_fee.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # SOL/SOL, kraken: withdrawal_fee, в SOL
+  - path: networks.SOL.SOL.withdrawal_fee.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # SOL/SOL, okx: withdrawal_fee, в SOL
+  - path: networks.SOL.SOL.withdrawal_fee.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # SOL/SOL, binance: min_withdrawal, в SOL
+  - path: networks.SOL.SOL.min_withdrawal.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # SOL/SOL, bybit: min_withdrawal, в SOL
+  - path: networks.SOL.SOL.min_withdrawal.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # SOL/SOL, kraken: min_withdrawal, в SOL
+  - path: networks.SOL.SOL.min_withdrawal.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # SOL/SOL, okx: min_withdrawal, в SOL
+  - path: networks.SOL.SOL.min_withdrawal.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
+  # SOL/SOL, binance: confirmations, целое число блоков
+  - path: networks.SOL.SOL.confirmations.binance
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.binance.com/en/fee/cryptoFee
+
+  # SOL/SOL, bybit: confirmations, целое число блоков
+  - path: networks.SOL.SOL.confirmations.bybit
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.bybit.com/en/fees
+      - https://www.bybit.com/en/help-center/article/Bybit-Deposit-and-Withdrawal-Fees
+      - https://www.bybit.com/en/fiat-deposit/withdraw
+      - https://www.bybit.com/en/help-center/article/Cryptocurrency-Deposit-FAQ
+
+  # SOL/SOL, kraken: confirmations, целое число блоков
+  - path: networks.SOL.SOL.confirmations.kraken
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://support.kraken.com/hc/en-us/articles/360000767986-Cryptocurrency-withdrawal-fees-and-minimums
+      - https://support.kraken.com/hc/en-us/articles/203325283-Cryptocurrency-deposit-processing-times
+
+  # SOL/SOL, okx: confirmations, целое число блоков
+  - path: networks.SOL.SOL.confirmations.okx
+    value: null
+    source: null
+    checked: null
+    account: false
+    source_candidates:
+      - https://www.okx.com/fees
+      - https://www.okx.com/help/why-has-my-deposit-not-been-credited
+
