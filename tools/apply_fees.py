@@ -58,6 +58,26 @@ def _represent_none(self, data):
 yaml_rt.representer.add_representer(type(None), _represent_none)
 
 
+def _represent_float(self, data):
+    """Пишем дробные числа так, чтобы их потом прочитали как числа.
+
+    Ловушка: repr(2e-05) в Python даёт строку '2e-05', а в YAML мантисса
+    научной записи обязана содержать точку. Без неё значение читается
+    как СТРОКА, молча и без ошибки, - и расчёт издержек посчитает чушь
+    вместо того, чтобы упасть. Поэтому '2e-05' превращаем в '2.0e-05'.
+    """
+    text = repr(float(data))
+    if "e" in text or "E" in text:
+        mantissa, _, exponent = text.partition("e")
+        if "." not in mantissa:
+            mantissa += ".0"
+        text = f"{mantissa}e{exponent}"
+    return self.represent_scalar("tag:yaml.org,2002:float", text)
+
+
+yaml_rt.representer.add_representer(float, _represent_float)
+
+
 # --------------------------------------------------------------------------
 #  Ссылки из fees.md
 # --------------------------------------------------------------------------
@@ -200,9 +220,134 @@ def input_path(argv: list[str]) -> pathlib.Path:
     return INPUT
 
 
+# --------------------------------------------------------------------------
+#  Задание на сбор значений
+# --------------------------------------------------------------------------
+
+FIELD_DOC = {
+    "taker_fee": (
+        "комиссия тейкера",
+        "доля, не проценты: 0,1 % записывается как 0.001",
+        "Спот, обычный аккаунт без VIP-уровня и без скидки за удержание "
+        "токена биржи. Нужен именно тейкер: арбитраж забирает ликвидность "
+        "из стакана, а не ставит лимитные заявки.",
+    ),
+    "withdrawal_fee": (
+        "комиссия за вывод",
+        "в самой монете, не в USDT: 0.00002 BTC, а не 1.53 USDT",
+        "Фиксированная плата за перевод. От объёма сделки не зависит - "
+        "именно поэтому она делает мелкий арбитраж убыточным и задаёт "
+        "нижнюю границу оптимального объёма.",
+    ),
+    "min_withdrawal": (
+        "минимальная сумма вывода",
+        "в самой монете",
+        "Если посчитанный оптимальный объём окажется меньше этого порога, "
+        "сделка невозможна физически.",
+    ),
+    "confirmations": (
+        "число подтверждений сети",
+        "целое число блоков",
+        "Сколько блоков биржа ждёт, прежде чем зачислить депозит. Умноженное "
+        "на время блока, даёт длительность перевода - тот самый горизонт, "
+        "за который цена успевает уйти.",
+    ),
+}
+
+
+def build_spec(cfg) -> str:
+    """Задание на сбор: что достать и с каких бирж, сгруппировано по биржам."""
+    out: list[str] = [
+        "# Какие значения нужно достать и откуда",
+        "",
+        "Сгенерировано `tools/apply_fees.py --spec` из config.yaml. "
+        "Не редактировать руками: файл перезаписывается.",
+        "",
+        "## Что это за величины",
+        "",
+    ]
+    for field, (title, unit, why) in FIELD_DOC.items():
+        out += [f"**`{field}` — {title}.** Единицы: {unit}.", "", f"{why}", ""]
+
+    out += ["---", "", "## Что нужно по каждой бирже", ""]
+
+    per_exchange: dict[str, dict[str, list[str]]] = {}
+    for key, ex in cfg["exchanges"].items():
+        per_exchange[key] = {"нужно": [], "есть": []}
+        bucket = "есть" if ex.get("taker_fee") is not None else "нужно"
+        val = f" = {ex['taker_fee']}" if bucket == "есть" else ""
+        per_exchange[key][bucket].append(f"`taker_fee`{val}")
+
+    for coin, nets in cfg.get("networks", {}).items():
+        for net in nets:
+            label = f"{coin} / {net['name']}"
+            for field in ("withdrawal_fee", "min_withdrawal", "confirmations"):
+                for exch, v in sorted((net.get(field) or {}).items()):
+                    bucket = "есть" if v is not None else "нужно"
+                    val = f" = {v}" if v is not None else ""
+                    per_exchange.setdefault(exch, {"нужно": [], "есть": []})
+                    per_exchange[exch][bucket].append(
+                        f"`{field}` для {label}{val}")
+
+    for key, ex in cfg["exchanges"].items():
+        groups = per_exchange[key]
+        out += [f"### {ex['display_name']}", ""]
+        if groups["нужно"]:
+            out += [f"Нужно достать — {len(groups['нужно'])} значений:", ""]
+            out += [f"- [ ] {row}" for row in groups["нужно"]]
+            out.append("")
+        if groups["есть"]:
+            out += [f"Уже есть — {len(groups['есть'])} значений:", ""]
+            out += [f"- [x] {row}" for row in groups["есть"]]
+            out.append("")
+
+    total_need = sum(len(g["нужно"]) for g in per_exchange.values())
+    total_have = sum(len(g["есть"]) for g in per_exchange.values())
+    out += [
+        "---",
+        "",
+        "## Итого",
+        "",
+        f"Нужно достать: **{total_need}**. Уже есть: **{total_have}**.",
+        "",
+        "## Чем это можно достать, а чем нельзя",
+        "",
+        "Проверено 2026-09-17 прямыми запросами.",
+        "",
+        "**Работает: публичный JSON-эндпоинт.** У Binance нашёлся адрес "
+        "`/bapi/capital/v1/public/capital/getNetworkCoinAll` - тот самый, "
+        "которым пользуется их собственная страница комиссий. Без "
+        "авторизации, 965 монет, все три поля сразу. Отсюда взяты 12 "
+        "значений Binance. Эндпоинт не описан в документации, то есть "
+        "может измениться без предупреждения.",
+        "",
+        "**Не работает: разбор тарифных страниц по ссылке.** Проверены "
+        "страницы Binance, Bybit, OKX и две статьи справки Kraken - все "
+        "отдают только оболочку, таблицы рисует браузер уже у тебя. "
+        "Парсер, получающий такую ссылку, увидит пустую страницу.",
+        "",
+        "**Не работает: авторизованные эндпоинты.** `/api/v5/asset/currencies` "
+        "у OKX отвечает `Request header OK-ACCESS-KEY can not be empty`. "
+        "README запрещает ключи.",
+        "",
+        "Значит, для оставшихся трёх бирж нужен один из двух путей: найти "
+        "такой же публичный JSON-адрес, как у Binance, - или сохранить "
+        "страницу целиком (`Ctrl+S`) и положить файл в папку проекта, "
+        "тогда разберу локально.",
+    ]
+    return "\n".join(out) + "\n"
+
+
 def main(argv: list[str]) -> int:
     cfg = yaml_rt.load(CONFIG.read_text(encoding="utf-8"))
     src = input_path(argv)
+
+    if "--spec" in argv:
+        out = ROOT / "docs" / "values_to_fetch.md"
+        out.parent.mkdir(exist_ok=True)
+        out.write_text(build_spec(cfg), encoding="utf-8")
+        print(f"Задание записано в {out.relative_to(ROOT)}")
+        return 0
 
     if "--template" in argv:
         INPUT.parent.mkdir(exist_ok=True)

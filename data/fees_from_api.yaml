@@ -1,0 +1,92 @@
+# Значения, выгруженные из публичных эндпоинтов бирж.
+# Файл создаётся tools/fetch_withdrawal_rules.py - не править руками.
+# Выгружено: 2026-09-17 20:40:51 UTC
+#
+# Вносится тем же инструментом, что и значения, собранные вручную:
+#   .venv/bin/python -u tools/apply_fees.py --input data/fees_from_api.yaml
+
+values:
+  # BTC в сети Bitcoin
+  - path: networks.BTC.BTC.withdrawal_fee.binance
+    value: 2e-05
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # BTC в сети Bitcoin
+  - path: networks.BTC.BTC.min_withdrawal.binance
+    value: 0.0001
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # BTC в сети Bitcoin
+  - path: networks.BTC.BTC.confirmations.binance
+    value: 1
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # ETH в сети Ethereum (ERC20)
+  - path: networks.ETH.ERC20.withdrawal_fee.binance
+    value: 7e-05
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # ETH в сети Ethereum (ERC20)
+  - path: networks.ETH.ERC20.min_withdrawal.binance
+    value: 0.002
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # ETH в сети Ethereum (ERC20)
+  - path: networks.ETH.ERC20.confirmations.binance
+    value: 6
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # ETH в сети Arbitrum One
+  - path: networks.ETH.ARBITRUM.withdrawal_fee.binance
+    value: 2e-05
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # ETH в сети Arbitrum One
+  - path: networks.ETH.ARBITRUM.min_withdrawal.binance
+    value: 0.0003
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # ETH в сети Arbitrum One
+  - path: networks.ETH.ARBITRUM.confirmations.binance
+    value: 120
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # SOL в сети Solana
+  - path: networks.SOL.SOL.withdrawal_fee.binance
+    value: 0.001
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # SOL в сети Solana
+  - path: networks.SOL.SOL.min_withdrawal.binance
+    value: 0.01
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+
+  # SOL в сети Solana
+  - path: networks.SOL.SOL.confirmations.binance
+    value: 1
+    source: https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll
+    checked: 2026-09-17
+    account: false
+

@@ -234,17 +234,17 @@ networks:
       #   вокруг цели - сложность пересчитывается именно ради её удержания.
       block_time_sec: 600.0
       withdrawal_fee:
-        binance: null
+        binance: 2.0e-05  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
       min_withdrawal:
-        binance: null
+        binance: 0.0001  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
       confirmations:
-        binance: null
+        binance: 1  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
@@ -264,17 +264,17 @@ networks:
       #   Прогон: tools/measure_block_times.py
       block_time_sec: 12.0
       withdrawal_fee:
-        binance: null
+        binance: 7.0e-05  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
       min_withdrawal:
-        binance: null
+        binance: 0.002  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
       confirmations:
-        binance: null
+        binance: 6  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
@@ -289,17 +289,17 @@ networks:
         okx: null
         kraken: null
       withdrawal_fee:
-        binance: null
+        binance: 2.0e-05  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
       min_withdrawal:
-        binance: null
+        binance: 0.0003  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
       confirmations:
-        binance: null
+        binance: 120  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
@@ -316,17 +316,17 @@ networks:
       #   Прогон: tools/measure_block_times.py
       block_time_sec: 0.3182
       withdrawal_fee:
-        binance: null
+        binance: 0.001  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
       min_withdrawal:
-        binance: null
+        binance: 0.01  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null
       confirmations:
-        binance: null
+        binance: 1  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
         bybit: null
         okx: null
         kraken: null

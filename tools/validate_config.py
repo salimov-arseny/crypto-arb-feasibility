@@ -62,6 +62,43 @@ def check_structure(cfg: dict) -> list[str]:
     return problems
 
 
+def check_types(cfg: dict) -> list[str]:
+    """Все заполненные значения обязаны быть числами.
+
+    Поводом стала реальная ошибка: значение 2e-05, записанное в YAML без
+    точки в мантиссе, читается как СТРОКА, без всякого предупреждения.
+    Такой конфиг выглядит заполненным, а расчёт по нему даёт мусор.
+    Проверка типов ловит это на входе, а не в результатах.
+    """
+    problems = []
+
+    def check(value, label, expect_int=False):
+        if value is None:
+            return
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            problems.append(f"{label}: {value!r} - это {type(value).__name__}, "
+                            f"а должно быть число")
+        elif expect_int and not float(value).is_integer():
+            problems.append(f"{label}: {value!r} - число подтверждений "
+                            f"должно быть целым")
+        elif value < 0:
+            problems.append(f"{label}: {value!r} - отрицательное значение")
+
+    for key, ex in cfg["exchanges"].items():
+        for field in ("taker_fee", "maker_fee"):
+            check(ex.get(field), f"exchanges.{key}.{field}")
+
+    for coin, nets in cfg.get("networks", {}).items():
+        for net in nets:
+            base = f"networks.{coin}.{net['code']}"
+            check(net.get("block_time_sec"), f"{base}.block_time_sec")
+            for field in ("withdrawal_fee", "min_withdrawal", "confirmations"):
+                for exch, v in (net.get(field) or {}).items():
+                    check(v, f"{base}.{field}.{exch}",
+                          expect_int=(field == "confirmations"))
+    return problems
+
+
 def check_against_exchange(cfg: dict, live: bool) -> tuple[list[str], list[str]]:
     """Сверяем instrument_rules с тем, что реально отдаёт биржа."""
     skipped: list[str] = []
@@ -239,7 +276,15 @@ def main(argv: list[str]) -> int:
         print(f"  порядок: {len(cfg['exchanges'])} биржи(-й), "
               f"{len(cfg['symbols'])} инструмента(-ов), тикеры на месте")
 
-    print("\n2. Сверка чисел с биржей")
+    print("\n2. Типы значений")
+    types = check_types(cfg)
+    if types:
+        for p in types:
+            print(f"  ОШИБКА  {p}")
+    else:
+        print("  порядок: все заполненные значения - числа")
+
+    print("\n3. Сверка чисел с биржей")
     drift, skipped = check_against_exchange(cfg, live)
     for p in drift:
         print(f"  РАСХОЖДЕНИЕ  {p}")
@@ -249,7 +294,7 @@ def main(argv: list[str]) -> int:
         n = (len(cfg["exchanges"]) * len(cfg["symbols"]) - len(skipped)) * len(RULE_FIELDS)
         print(f"  порядок: {n} значений совпали со значениями биржи")
 
-    print("\n3. Полнота")
+    print("\n4. Полнота")
     pending, total_pending = collect_pending(cfg)
     lines_pending = sum(len(v) for v in pending.values())
     if total_pending:
@@ -269,7 +314,7 @@ def main(argv: list[str]) -> int:
         print(f"\n  чек-лист записан в {out.relative_to(ROOT)}")
 
     print("\n" + "=" * 72)
-    blocking = structure + drift
+    blocking = structure + types + drift
     if blocking:
         print(f"НЕ ГОТОВ: {len(blocking)} ошибок структуры или расхождений.")
         return 2
