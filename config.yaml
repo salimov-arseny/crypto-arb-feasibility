@@ -1,0 +1,285 @@
+# ==========================================================================
+#  crypto-arb-feasibility - конфигурация
+# ==========================================================================
+#
+#  Правило этого файла: у каждого числа есть источник и дата.
+#  Источник бывает двух видов.
+#
+#    api:  значение получено прогоном публичного эндпоинта. Указан сам
+#          эндпоинт и время запроса. Такое число воспроизводимо: запусти
+#          tools/validate_config.py и убедись, что биржа отдаёт то же самое.
+#
+#    doc:  значение взято из документации или с тарифной страницы биржи.
+#          Указан адрес и дата просмотра. Такое число проверяется глазами
+#          и устаревает - его надо пересматривать перед каждым прогоном.
+#
+#  Если значение не подтверждено - стоит null и пометка «в работе» с точным
+#  указанием, что и где смотреть. Выдуманных чисел в этом файле нет.
+#  tools/validate_config.py перечисляет все незаполненные поля и не даёт
+#  случайно запустить расчёт на дырявом конфиге.
+#
+# ==========================================================================
+
+meta:
+  project: crypto-arb-feasibility
+  created: 2026-09-17
+
+  # Канал, через который собираются данные. Зафиксирован по результатам шага 0.
+  # Прямое подключение выбрано не за скорость (медиана 394 мс против 552 мс
+  # у туннеля в спокойный момент), а за предсказуемость: 0 неудачных попыток
+  # из 36 против 5 из 36, худший ответ 554 мс против 30 694 мс.
+  # Обход четырёх бирж подряд: ~1,5 с против 5-55 с через туннель.
+  # Сравнение: logs/endpoints_check_2026-09-17_vpn-at.txt
+  #            logs/endpoints_check_2026-09-17_no-vpn.txt
+  network_channel: direct
+  geo_restrictions_observed: none    # ни одного HTTP 451 или 403 на 2026-09-17
+
+  # Глубина стакана, запрашиваемая у всех бирж. README: до 100 уровней.
+  # Осторожно: 100 уровней - это разные ценовые окна у разных инструментов.
+  # У BTC на Binance сотня уровней достаёт всего до ~1,6 б.п. от лучшей цены,
+  # у SOL - до ~98 б.п. Для объёмов за пределами видимой части стакана
+  # расчёт даёт оценку сверху по прибыли.
+  orderbook_depth: 100
+
+# --------------------------------------------------------------------------
+#  Инструменты
+# --------------------------------------------------------------------------
+#  Две высоколиквидные пары и одна менее ликвидная. Контраст между ними -
+#  основной результат работы.
+#
+#  «Менее ликвидная» здесь означает не малую капитализацию, а меньшую
+#  глубину стакана вблизи лучшей цены. Замер на 2026-09-17 19:07 UTC,
+#  объём на стороне продажи внутри полосы 5 б.п. от лучшего аска, USDT:
+#
+#      инструмент   Binance    Bybit      OKX     Kraken
+#      BTC/USDT   >789 033   511 828  1 372 743  202 265
+#      ETH/USDT   >708 147   109 381    289 600   39 742
+#      SOL/USDT    117 507    31 152    122 941   36 008
+#
+#  По SOL глубина в 4-7 раз меньше, чем по BTC, на каждой площадке.
+# --------------------------------------------------------------------------
+
+symbols:
+  - BTC/USDT
+  - ETH/USDT
+  - SOL/USDT
+
+# Валюта, которая физически переводится между биржами. В схеме из README
+# покупаем монету за USDT на бирже A, переводим монету на биржу B, продаём.
+# Значит выводится монета, а не USDT, и withdrawal_fee считается в монете.
+transfer_asset:
+  BTC/USDT: BTC
+  ETH/USDT: ETH
+  SOL/USDT: SOL
+
+# --------------------------------------------------------------------------
+#  Биржи
+# --------------------------------------------------------------------------
+
+exchanges:
+
+  binance:
+    display_name: Binance
+    rest_base: https://api.binance.com
+    endpoints:
+      orderbook: /api/v3/depth            # параметры: symbol, limit
+      instrument_info: /api/v3/exchangeInfo
+    tickers:                              # источник: api, 2026-09-17 19:13 UTC
+      BTC/USDT: BTCUSDT
+      ETH/USDT: ETHUSDT
+      SOL/USDT: SOLUSDT
+
+    # Комиссия тейкера, доля от суммы сделки.
+    # источник: doc, https://www.binance.com/en/fee/schedule
+    #           и https://www.binance.com/en/fee/trading
+    #           просмотрено 2026-09-17, две страницы согласованы
+    # уровень:  Regular User, VIP 0, менее 1 000 000 USD оборота за 30 дней,
+    #           без скидки за оплату комиссии в BNB
+    taker_fee: 0.001                      # 0,100 %
+    maker_fee: 0.001                      # 0,100 %, в расчёте не используется
+    fee_level: "VIP 0, без скидки BNB"
+
+    # источник: api, GET /api/v3/exchangeInfo, 2026-09-17 19:13 UTC
+    # tick_size    - шаг цены, цена ордера обязана быть ему кратна
+    # step_size    - шаг объёма
+    # min_qty      - минимальный объём ордера в монете
+    # min_notional - минимальная сумма ордера в USDT
+    instrument_rules:
+      BTC/USDT: {tick_size: 0.01, step_size: 0.00001, min_qty: 0.00001, min_notional: 5.0}
+      ETH/USDT: {tick_size: 0.01, step_size: 0.0001,  min_qty: 0.0001,  min_notional: 5.0}
+      SOL/USDT: {tick_size: 0.01, step_size: 0.001,   min_qty: 0.001,   min_notional: 5.0}
+
+  bybit:
+    display_name: Bybit
+    rest_base: https://api.bybit.com
+    endpoints:
+      orderbook: /v5/market/orderbook      # параметры: category=spot, symbol, limit
+      instrument_info: /v5/market/instruments-info
+    tickers:
+      BTC/USDT: BTCUSDT
+      ETH/USDT: ETHUSDT
+      SOL/USDT: SOLUSDT
+
+    # в работе: тарифная страница Bybit собирается скриптами и по сети
+    #   не читается (проверено 2026-09-17: два адреса, оба по таймауту).
+    #   Смотреть вручную: https://www.bybit.com/en/announcement-info/fee-rate/
+    #   раздел Spot Trading, уровень без VIP. Нужен тейкер для обычного
+    #   аккаунта без скидок за удержание токена биржи.
+    taker_fee: null
+    maker_fee: null
+    fee_level: null
+
+    # источник: api, GET /v5/market/instruments-info?category=spot,
+    #           2026-09-17 19:13 UTC
+    # Обрати внимание: шаг цены по BTC здесь 0,1, а не 0,01 как у Binance.
+    instrument_rules:
+      BTC/USDT: {tick_size: 0.1,  step_size: 0.000001, min_qty: 0.000001, min_notional: 5.0}
+      ETH/USDT: {tick_size: 0.01, step_size: 0.00001,  min_qty: 0.00001,  min_notional: 5.0}
+      SOL/USDT: {tick_size: 0.01, step_size: 0.0001,   min_qty: 0.0001,   min_notional: 5.0}
+
+  okx:
+    display_name: OKX
+    rest_base: https://www.okx.com
+    endpoints:
+      orderbook: /api/v5/market/books      # параметры: instId, sz
+      instrument_info: /api/v5/public/instruments
+    tickers:
+      BTC/USDT: BTC-USDT
+      ETH/USDT: ETH-USDT
+      SOL/USDT: SOL-USDT
+
+    # в работе: страница https://www.okx.com/fees и /fees/trading отдают
+    #   только метаданные, сами таблицы подгружаются скриптом
+    #   (проверено 2026-09-17). Смотреть вручную: уровень Lv1 для обычного
+    #   пользователя, спот, без учёта удержания OKB.
+    taker_fee: null
+    maker_fee: null
+    fee_level: null
+
+    # источник: api, GET /api/v5/public/instruments?instType=SPOT,
+    #           2026-09-17 19:13 UTC
+    # min_notional: OKX не публикует минимум в котируемой валюте в этом
+    #   эндпоинте - там только minSz в базовой монете. Оставлено null
+    #   сознательно, это не пропуск.
+    instrument_rules:
+      BTC/USDT: {tick_size: 0.1,  step_size: 0.00000001, min_qty: 0.00001, min_notional: null}
+      ETH/USDT: {tick_size: 0.01, step_size: 0.000001,   min_qty: 0.0001,  min_notional: null}
+      SOL/USDT: {tick_size: 0.01, step_size: 0.000001,   min_qty: 0.01,    min_notional: null}
+
+  kraken:
+    display_name: Kraken
+    rest_base: https://api.kraken.com
+    endpoints:
+      orderbook: /0/public/Depth           # параметры: pair, count
+      instrument_info: /0/public/AssetPairs
+    tickers:
+      BTC/USDT: XBTUSDT                    # биткоин у Kraken обозначается XBT
+      ETH/USDT: ETHUSDT
+      SOL/USDT: SOLUSDT
+
+    # в работе: источники противоречат друг другу, поэтому числа нет.
+    #   На 2026-09-17 получено три разных ответа на один вопрос:
+    #     0,40 / 0,80 % - с https://www.kraken.com/features/fee-schedule
+    #     0,25 / 0,40 % - обзор, уровень «до 10 000 USD за 30 дней»
+    #     0,16 / 0,26 % - обзор, уровень «до 50 000 USD за 30 дней»
+    #   Вдобавок в июле 2026 Kraken перестроил тарифные уровни: теперь
+    #   уровень определяется либо оборотом, либо стоимостью активов
+    #   на площадке - что выгоднее. Нужен снимок таблицы Kraken Pro
+    #   (не «instant buy» в приложении - это другая, более дорогая схема).
+    #   Поля fees и fees_maker в /0/public/AssetPairs выглядят как публичная
+    #   комиссия, но пусты у всех 1450 пар - проверено перебором.
+    taker_fee: null
+    maker_fee: null
+    fee_level: null
+
+    # источник: api, GET /0/public/AssetPairs, 2026-09-17 19:13 UTC
+    # step_size выведен из lot_decimals = 8.
+    # min_notional взят из поля costmin.
+    instrument_rules:
+      BTC/USDT: {tick_size: 0.1,  step_size: 0.00000001, min_qty: 0.00005, min_notional: 0.5}
+      ETH/USDT: {tick_size: 0.01, step_size: 0.00000001, min_qty: 0.001,   min_notional: 0.5}
+      SOL/USDT: {tick_size: 0.01, step_size: 0.00000001, min_qty: 0.06,    min_notional: 0.5}
+
+# --------------------------------------------------------------------------
+#  Сети вывода и время перевода
+# --------------------------------------------------------------------------
+#  Это самый дорогой слой издержек при малых объёмах: комиссия за вывод
+#  не зависит от объёма сделки, поэтому именно она делает мелкий арбитраж
+#  убыточным и задаёт нижнюю границу оптимального объёма (шаг 4 методики).
+#
+#  Ни одна из четырёх бирж не отдаёт стоимость вывода без авторизации:
+#  /sapi/v1/capital/config/getall у Binance, /api/v5/asset/currencies у OKX,
+#  /v5/asset/coin/query-info у Bybit - все требуют ключ. README запрещает
+#  ключи, значит эти числа заполняются вручную и только глазами.
+#
+#  Время подтверждения раскладывается на два множителя:
+#      время перевода = требуемое число подтверждений x время блока
+#  Время блока - свойство сети. Число подтверждений - политика биржи,
+#  у каждой своя, и именно она даёт основной разброс.
+# --------------------------------------------------------------------------
+
+networks:
+
+  BTC:
+    # в работе: для каждой биржи нужны withdrawal_fee (в BTC),
+    #   min_withdrawal (в BTC) и требуемое число подтверждений.
+    #   Где смотреть: страница вывода в личном кабинете биржи - там
+    #   указаны и комиссия, и минимум, и число подтверждений.
+    - name: Bitcoin
+      code: BTC
+      block_time_sec: null          # в работе: целевое время блока сети
+      withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
+      min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
+      confirmations: {binance: null, bybit: null, okx: null, kraken: null}
+
+  ETH:
+    # Выбор сети для ETH меняет результат сильнее всего: вывод через
+    # основную сеть и через L2 отличаются на порядок по стоимости.
+    # Поэтому обе сети заведены отдельно, а какую использовать - решит
+    # расчёт на шаге 4: берём самую дешёвую из поддерживаемых обеими
+    # биржами пары. Поддержка сети конкретной биржей тоже требует проверки.
+    - name: Ethereum
+      code: ERC20
+      block_time_sec: null
+      withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
+      min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
+      confirmations: {binance: null, bybit: null, okx: null, kraken: null}
+    - name: Arbitrum One
+      code: ARBITRUM
+      block_time_sec: null
+      supported: {binance: null, bybit: null, okx: null, kraken: null}
+      withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
+      min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
+      confirmations: {binance: null, bybit: null, okx: null, kraken: null}
+
+  SOL:
+    - name: Solana
+      code: SOL
+      block_time_sec: null
+      withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
+      min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
+      confirmations: {binance: null, bybit: null, okx: null, kraken: null}
+
+# --------------------------------------------------------------------------
+#  Параметры сбора данных (шаг 6)
+# --------------------------------------------------------------------------
+
+scan:
+  # Пауза между полными обходами всех бирж. Лимиты запросов у площадок
+  # разные, но порядок один: десятки запросов в секунду с одного адреса
+  # допустимы. Берём с большим запасом - нам важна не частота, а то,
+  # чтобы нас не отключили посреди многочасового прогона.
+  interval_sec: 5
+
+  # Максимальный разброс времени между снимками разных бирж внутри одного
+  # наблюдения. Снимки несинхронны, и расхождение в секунду уже рождает
+  # ложные сигналы. Наблюдения с превышением отбраковываются, их доля
+  # сама по себе результат и пишется в лог.
+  # Обоснование числа: обход четырёх бирж подряд занял ~1,5 с на прямом
+  # канале (шаг 0), при параллельном сборе разброс должен укладываться
+  # в худшую задержку - 554 мс на 2026-09-17. Порог 1,0 с даёт запас
+  # и при этом отсекает выбросы вроде 15-30 с, наблюдавшихся через VPN.
+  max_snapshot_skew_sec: 1.0
+
+  timeout_sec: 10
+  retries: 3

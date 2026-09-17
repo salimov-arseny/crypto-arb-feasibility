@@ -1,0 +1,101 @@
+{
+  "fetched_at_utc": "2026-09-17 19:13:24",
+  "rules": {
+    "BTC/USDT|Binance": {
+      "tick_size": 0.01,
+      "step_size": 1e-05,
+      "min_qty": 1e-05,
+      "min_notional": 5.0,
+      "taker_fee": null,
+      "source": "GET /api/v3/exchangeInfo"
+    },
+    "BTC/USDT|Bybit": {
+      "tick_size": 0.1,
+      "step_size": 1e-06,
+      "min_qty": 1e-06,
+      "min_notional": 5.0,
+      "taker_fee": null,
+      "source": "GET /v5/market/instruments-info?category=spot"
+    },
+    "BTC/USDT|OKX": {
+      "tick_size": 0.1,
+      "step_size": 1e-08,
+      "min_qty": 1e-05,
+      "min_notional": null,
+      "taker_fee": null,
+      "source": "GET /api/v5/public/instruments?instType=SPOT"
+    },
+    "BTC/USDT|Kraken": {
+      "tick_size": 0.1,
+      "step_size": 1e-08,
+      "min_qty": 5e-05,
+      "min_notional": 0.5,
+      "taker_fee": null,
+      "source": "GET /0/public/AssetPairs"
+    },
+    "ETH/USDT|Binance": {
+      "tick_size": 0.01,
+      "step_size": 0.0001,
+      "min_qty": 0.0001,
+      "min_notional": 5.0,
+      "taker_fee": null,
+      "source": "GET /api/v3/exchangeInfo"
+    },
+    "ETH/USDT|Bybit": {
+      "tick_size": 0.01,
+      "step_size": 1e-05,
+      "min_qty": 1e-05,
+      "min_notional": 5.0,
+      "taker_fee": null,
+      "source": "GET /v5/market/instruments-info?category=spot"
+    },
+    "ETH/USDT|OKX": {
+      "tick_size": 0.01,
+      "step_size": 1e-06,
+      "min_qty": 0.0001,
+      "min_notional": null,
+      "taker_fee": null,
+      "source": "GET /api/v5/public/instruments?instType=SPOT"
+    },
+    "ETH/USDT|Kraken": {
+      "tick_size": 0.01,
+      "step_size": 1e-08,
+      "min_qty": 0.001,
+      "min_notional": 0.5,
+      "taker_fee": null,
+      "source": "GET /0/public/AssetPairs"
+    },
+    "SOL/USDT|Binance": {
+      "tick_size": 0.01,
+      "step_size": 0.001,
+      "min_qty": 0.001,
+      "min_notional": 5.0,
+      "taker_fee": null,
+      "source": "GET /api/v3/exchangeInfo"
+    },
+    "SOL/USDT|Bybit": {
+      "tick_size": 0.01,
+      "step_size": 0.0001,
+      "min_qty": 0.0001,
+      "min_notional": 5.0,
+      "taker_fee": null,
+      "source": "GET /v5/market/instruments-info?category=spot"
+    },
+    "SOL/USDT|OKX": {
+      "tick_size": 0.01,
+      "step_size": 1e-06,
+      "min_qty": 0.01,
+      "min_notional": null,
+      "taker_fee": null,
+      "source": "GET /api/v5/public/instruments?instType=SPOT"
+    },
+    "SOL/USDT|Kraken": {
+      "tick_size": 0.01,
+      "step_size": 1e-08,
+      "min_qty": 0.06,
+      "min_notional": 0.5,
+      "taker_fee": null,
+      "source": "GET /0/public/AssetPairs"
+    }
+  }
+}
