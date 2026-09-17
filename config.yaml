@@ -106,8 +106,8 @@ exchanges:
     # min_notional - минимальная сумма ордера в USDT
     instrument_rules:
       BTC/USDT: {tick_size: 0.01, step_size: 0.00001, min_qty: 0.00001, min_notional: 5.0}
-      ETH/USDT: {tick_size: 0.01, step_size: 0.0001,  min_qty: 0.0001,  min_notional: 5.0}
-      SOL/USDT: {tick_size: 0.01, step_size: 0.001,   min_qty: 0.001,   min_notional: 5.0}
+      ETH/USDT: {tick_size: 0.01, step_size: 0.0001, min_qty: 0.0001, min_notional: 5.0}
+      SOL/USDT: {tick_size: 0.01, step_size: 0.001, min_qty: 0.001, min_notional: 5.0}
 
   bybit:
     display_name: Bybit
@@ -133,9 +133,9 @@ exchanges:
     #           2026-09-17 19:13 UTC
     # Обрати внимание: шаг цены по BTC здесь 0,1, а не 0,01 как у Binance.
     instrument_rules:
-      BTC/USDT: {tick_size: 0.1,  step_size: 0.000001, min_qty: 0.000001, min_notional: 5.0}
-      ETH/USDT: {tick_size: 0.01, step_size: 0.00001,  min_qty: 0.00001,  min_notional: 5.0}
-      SOL/USDT: {tick_size: 0.01, step_size: 0.0001,   min_qty: 0.0001,   min_notional: 5.0}
+      BTC/USDT: {tick_size: 0.1, step_size: 0.000001, min_qty: 0.000001, min_notional: 5.0}
+      ETH/USDT: {tick_size: 0.01, step_size: 0.00001, min_qty: 0.00001, min_notional: 5.0}
+      SOL/USDT: {tick_size: 0.01, step_size: 0.0001, min_qty: 0.0001, min_notional: 5.0}
 
   okx:
     display_name: OKX
@@ -162,9 +162,9 @@ exchanges:
     #   эндпоинте - там только minSz в базовой монете. Оставлено null
     #   сознательно, это не пропуск.
     instrument_rules:
-      BTC/USDT: {tick_size: 0.1,  step_size: 0.00000001, min_qty: 0.00001, min_notional: null}
-      ETH/USDT: {tick_size: 0.01, step_size: 0.000001,   min_qty: 0.0001,  min_notional: null}
-      SOL/USDT: {tick_size: 0.01, step_size: 0.000001,   min_qty: 0.01,    min_notional: null}
+      BTC/USDT: {tick_size: 0.1, step_size: 0.00000001, min_qty: 0.00001, min_notional: null}
+      ETH/USDT: {tick_size: 0.01, step_size: 0.000001, min_qty: 0.0001, min_notional: null}
+      SOL/USDT: {tick_size: 0.01, step_size: 0.000001, min_qty: 0.01, min_notional: null}
 
   kraken:
     display_name: Kraken
@@ -196,9 +196,9 @@ exchanges:
     # step_size выведен из lot_decimals = 8.
     # min_notional взят из поля costmin.
     instrument_rules:
-      BTC/USDT: {tick_size: 0.1,  step_size: 0.00000001, min_qty: 0.00005, min_notional: 0.5}
-      ETH/USDT: {tick_size: 0.01, step_size: 0.00000001, min_qty: 0.001,   min_notional: 0.5}
-      SOL/USDT: {tick_size: 0.01, step_size: 0.00000001, min_qty: 0.06,    min_notional: 0.5}
+      BTC/USDT: {tick_size: 0.1, step_size: 0.00000001, min_qty: 0.00005, min_notional: 0.5}
+      ETH/USDT: {tick_size: 0.01, step_size: 0.00000001, min_qty: 0.001, min_notional: 0.5}
+      SOL/USDT: {tick_size: 0.01, step_size: 0.00000001, min_qty: 0.06, min_notional: 0.5}
 
 # --------------------------------------------------------------------------
 #  Сети вывода и время перевода
@@ -233,9 +233,21 @@ networks:
       #   просмотрено 2026-09-17. Фактический интервал случаен и колеблется
       #   вокруг цели - сложность пересчитывается именно ради её удержания.
       block_time_sec: 600.0
-      withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
-      min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
-      confirmations: {binance: null, bybit: null, okx: null, kraken: null}
+      withdrawal_fee:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
+      min_withdrawal:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
+      confirmations:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
 
   ETH:
     # Выбор сети для ETH меняет результат сильнее всего: вывод через
@@ -251,18 +263,46 @@ networks:
       #   после перехода на proof-of-stake слот равен 12 с.
       #   Прогон: tools/measure_block_times.py
       block_time_sec: 12.0
-      withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
-      min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
-      confirmations: {binance: null, bybit: null, okx: null, kraken: null}
+      withdrawal_fee:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
+      min_withdrawal:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
+      confirmations:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
     - name: Arbitrum One
       code: ARBITRUM
       # источник: api, замер по 200 последним блокам через arb1.arbitrum.io/rpc,
       #   2026-09-17 20:15 UTC -> 0,2500 с. Прогон: tools/measure_block_times.py
       block_time_sec: 0.25
-      supported: {binance: null, bybit: null, okx: null, kraken: null}
-      withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
-      min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
-      confirmations: {binance: null, bybit: null, okx: null, kraken: null}
+      supported:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
+      withdrawal_fee:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
+      min_withdrawal:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
+      confirmations:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
 
   SOL:
     - name: Solana
@@ -275,9 +315,21 @@ networks:
       #   перемерить перед финальным прогоном: оно плавает с загрузкой сети.
       #   Прогон: tools/measure_block_times.py
       block_time_sec: 0.3182
-      withdrawal_fee: {binance: null, bybit: null, okx: null, kraken: null}
-      min_withdrawal: {binance: null, bybit: null, okx: null, kraken: null}
-      confirmations: {binance: null, bybit: null, okx: null, kraken: null}
+      withdrawal_fee:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
+      min_withdrawal:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
+      confirmations:
+        binance: null
+        bybit: null
+        okx: null
+        kraken: null
 
 # --------------------------------------------------------------------------
 #  Параметры сбора данных (шаг 6)
