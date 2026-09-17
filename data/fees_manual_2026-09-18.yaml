@@ -1,0 +1,207 @@
+# Значения, собранные вручную 2026-09-18.
+#
+# Происхождение. Числа выписаны вручную с официальных страниц бирж;
+# первичные снимки страниц не сохранены. Это вторичный источник:
+# без API-ключа проверить их прогоном нельзя. Поле source у каждой записи
+# говорит об этом прямо, и та же пометка уходит в комментарий config.yaml.
+# Перед финальным прогоном их стоит пересмотреть - см. docs/values_to_fetch.md.
+#
+# Исключение - комиссия тейкера Kraken: она совпала с прогоном
+# официальной страницы от 2026-09-17, и там источник первичный.
+#
+# Соглашение по подтверждениям. Там, где источник даёт два числа
+# («1 для депозита / 2 для вывода»), берём число для ЗАЧИСЛЕНИЯ ДЕПОЗИТА:
+# в схеме арбитража мы ждём именно зачисления на бирже-получателе, чтобы
+# продать. Второе число относится к разблокировке средств под вывод
+# и в нашу модель не входит.
+
+values:
+
+# ===================== Bybit =====================
+
+  - path: exchanges.bybit.taker_fee
+    value: 0.001
+    source: "сводка 2026-09-18 по странице тарифов Bybit, спот Non-VIP; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.BTC.BTC.withdrawal_fee.bybit
+    value: 0.000035
+    source: "сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.BTC.BTC.min_withdrawal.bybit
+    value: 0.00027
+    source: "сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.BTC.BTC.confirmations.bybit
+    value: 1
+    source: "сводка 2026-09-18 по справке Bybit; взято число для зачисления депозита (1), не для разблокировки вывода (2)"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.ETH.ERC20.withdrawal_fee.bybit
+    value: 0.0003
+    source: "сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.ETH.ERC20.min_withdrawal.bybit
+    value: 0.0015
+    source: "сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.ETH.ERC20.confirmations.bybit
+    value: 6
+    source: "сводка 2026-09-18 по справке Bybit; зачисление депозита (6), не финализация (64)"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.ETH.ARBITRUM.withdrawal_fee.bybit
+    value: 0.00004
+    source: "сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.ETH.ARBITRUM.min_withdrawal.bybit
+    value: 0.00004
+    source: "сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.ETH.ARBITRUM.confirmations.bybit
+    value: 120
+    source: "сводка 2026-09-18 по справке Bybit; зачисление депозита (120), не финализация (3360)"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.SOL.SOL.withdrawal_fee.bybit
+    value: 0.001
+    source: "сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.SOL.SOL.min_withdrawal.bybit
+    value: 0.03
+    source: "сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.SOL.SOL.confirmations.bybit
+    value: 200
+    source: "сводка 2026-09-18 по справке Bybit; зачисление депозита"
+    checked: 2026-09-18
+    account: false
+
+# ===================== OKX =====================
+
+  - path: exchanges.okx.taker_fee
+    value: 0.001
+    source: "сводка 2026-09-18 по странице тарифов OKX, спот базовый уровень; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.BTC.BTC.withdrawal_fee.okx
+    value: 0.000015
+    source: "сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.BTC.BTC.min_withdrawal.okx
+    value: 0.000095
+    source: "сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.ETH.ERC20.withdrawal_fee.okx
+    value: 0.000094
+    source: "сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.ETH.ERC20.min_withdrawal.okx
+    value: 0.0011
+    source: "сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.ETH.ARBITRUM.withdrawal_fee.okx
+    value: 0.0000022
+    source: "сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.ETH.ARBITRUM.min_withdrawal.okx
+    value: 0.0011
+    source: "сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.SOL.SOL.withdrawal_fee.okx
+    value: 0.00025
+    source: "сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.SOL.SOL.min_withdrawal.okx
+    value: 0.0013
+    source: "сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+
+# ===================== Kraken =====================
+
+  # Единственное значение с первичным источником: страница открыта
+  # 2026-09-17, на ней «мейкер 0,40 %, тейкер 0,80 %».
+  # Сводка от 2026-09-18 дала то же самое - два независимых чтения сошлись.
+  - path: exchanges.kraken.taker_fee
+    value: 0.008
+    source: "https://www.kraken.com/features/fee-schedule - прогон 2026-09-17 (Kraken Pro, уровень 1: мейкер 0,40 %, тейкер 0,80 %); подтверждено сводкой 2026-09-18"
+    checked: 2026-09-17
+    account: false
+
+  - path: networks.BTC.BTC.withdrawal_fee.kraken
+    value: 0.000015
+    source: "сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.BTC.BTC.min_withdrawal.kraken
+    value: 0.000218
+    source: "сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.BTC.BTC.confirmations.kraken
+    value: 3
+    source: "сводка 2026-09-18 по справке Kraken о времени зачисления депозитов"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.ETH.ERC20.withdrawal_fee.kraken
+    value: 0.00014
+    source: "сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.ETH.ERC20.min_withdrawal.kraken
+    value: 0.000168
+    source: "сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.ETH.ERC20.confirmations.kraken
+    value: 30
+    source: "сводка 2026-09-18 по справке Kraken о времени зачисления депозитов"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.ETH.ARBITRUM.withdrawal_fee.kraken
+    value: 0.00015
+    source: "сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.ETH.ARBITRUM.min_withdrawal.kraken
+    value: 0.0003
+    source: "сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+
+  - path: networks.SOL.SOL.withdrawal_fee.kraken
+    value: 0.005
+    source: "сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false
+  - path: networks.SOL.SOL.min_withdrawal.kraken
+    value: 0.011
+    source: "сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён"
+    checked: 2026-09-18
+    account: false

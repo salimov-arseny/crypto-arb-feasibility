@@ -44,63 +44,69 @@
 
 ### Bybit
 
-Нужно достать — 13 значений:
+Уже есть — 13 значений:
 
-- [ ] `taker_fee`
-- [ ] `withdrawal_fee` для BTC / Bitcoin
-- [ ] `min_withdrawal` для BTC / Bitcoin
-- [ ] `confirmations` для BTC / Bitcoin
-- [ ] `withdrawal_fee` для ETH / Ethereum
-- [ ] `min_withdrawal` для ETH / Ethereum
-- [ ] `confirmations` для ETH / Ethereum
-- [ ] `withdrawal_fee` для ETH / Arbitrum One
-- [ ] `min_withdrawal` для ETH / Arbitrum One
-- [ ] `confirmations` для ETH / Arbitrum One
-- [ ] `withdrawal_fee` для SOL / Solana
-- [ ] `min_withdrawal` для SOL / Solana
-- [ ] `confirmations` для SOL / Solana
+- [x] `taker_fee` = 0.001
+- [x] `withdrawal_fee` для BTC / Bitcoin = 3.5e-05
+- [x] `min_withdrawal` для BTC / Bitcoin = 0.00027
+- [x] `confirmations` для BTC / Bitcoin = 1
+- [x] `withdrawal_fee` для ETH / Ethereum = 0.0003
+- [x] `min_withdrawal` для ETH / Ethereum = 0.0015
+- [x] `confirmations` для ETH / Ethereum = 6
+- [x] `withdrawal_fee` для ETH / Arbitrum One = 4e-05
+- [x] `min_withdrawal` для ETH / Arbitrum One = 4e-05
+- [x] `confirmations` для ETH / Arbitrum One = 120
+- [x] `withdrawal_fee` для SOL / Solana = 0.001
+- [x] `min_withdrawal` для SOL / Solana = 0.03
+- [x] `confirmations` для SOL / Solana = 200
 
 ### OKX
 
-Нужно достать — 13 значений:
+Нужно достать — 4 значений:
 
-- [ ] `taker_fee`
-- [ ] `withdrawal_fee` для BTC / Bitcoin
-- [ ] `min_withdrawal` для BTC / Bitcoin
 - [ ] `confirmations` для BTC / Bitcoin
-- [ ] `withdrawal_fee` для ETH / Ethereum
-- [ ] `min_withdrawal` для ETH / Ethereum
 - [ ] `confirmations` для ETH / Ethereum
-- [ ] `withdrawal_fee` для ETH / Arbitrum One
-- [ ] `min_withdrawal` для ETH / Arbitrum One
 - [ ] `confirmations` для ETH / Arbitrum One
-- [ ] `withdrawal_fee` для SOL / Solana
-- [ ] `min_withdrawal` для SOL / Solana
 - [ ] `confirmations` для SOL / Solana
+
+Уже есть — 9 значений:
+
+- [x] `taker_fee` = 0.001
+- [x] `withdrawal_fee` для BTC / Bitcoin = 1.5e-05
+- [x] `min_withdrawal` для BTC / Bitcoin = 9.5e-05
+- [x] `withdrawal_fee` для ETH / Ethereum = 9.4e-05
+- [x] `min_withdrawal` для ETH / Ethereum = 0.0011
+- [x] `withdrawal_fee` для ETH / Arbitrum One = 2.2e-06
+- [x] `min_withdrawal` для ETH / Arbitrum One = 0.0011
+- [x] `withdrawal_fee` для SOL / Solana = 0.00025
+- [x] `min_withdrawal` для SOL / Solana = 0.0013
 
 ### Kraken
 
-Нужно достать — 13 значений:
+Нужно достать — 2 значений:
 
-- [ ] `taker_fee`
-- [ ] `withdrawal_fee` для BTC / Bitcoin
-- [ ] `min_withdrawal` для BTC / Bitcoin
-- [ ] `confirmations` для BTC / Bitcoin
-- [ ] `withdrawal_fee` для ETH / Ethereum
-- [ ] `min_withdrawal` для ETH / Ethereum
-- [ ] `confirmations` для ETH / Ethereum
-- [ ] `withdrawal_fee` для ETH / Arbitrum One
-- [ ] `min_withdrawal` для ETH / Arbitrum One
 - [ ] `confirmations` для ETH / Arbitrum One
-- [ ] `withdrawal_fee` для SOL / Solana
-- [ ] `min_withdrawal` для SOL / Solana
 - [ ] `confirmations` для SOL / Solana
+
+Уже есть — 11 значений:
+
+- [x] `taker_fee` = 0.008
+- [x] `withdrawal_fee` для BTC / Bitcoin = 1.5e-05
+- [x] `min_withdrawal` для BTC / Bitcoin = 0.000218
+- [x] `confirmations` для BTC / Bitcoin = 3
+- [x] `withdrawal_fee` для ETH / Ethereum = 0.00014
+- [x] `min_withdrawal` для ETH / Ethereum = 0.000168
+- [x] `confirmations` для ETH / Ethereum = 30
+- [x] `withdrawal_fee` для ETH / Arbitrum One = 0.00015
+- [x] `min_withdrawal` для ETH / Arbitrum One = 0.0003
+- [x] `withdrawal_fee` для SOL / Solana = 0.005
+- [x] `min_withdrawal` для SOL / Solana = 0.011
 
 ---
 
 ## Итого
 
-Нужно достать: **39**. Уже есть: **13**.
+Нужно достать: **6**. Уже есть: **46**.
 
 ## Чем это можно достать, а чем нельзя
 

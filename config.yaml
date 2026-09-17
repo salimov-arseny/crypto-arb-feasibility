@@ -125,7 +125,7 @@ exchanges:
     #   Смотреть вручную: https://www.bybit.com/en/announcement-info/fee-rate/
     #   раздел Spot Trading, уровень без VIP. Нужен тейкер для обычного
     #   аккаунта без скидок за удержание токена биржи.
-    taker_fee: null
+    taker_fee: 0.001  # источник: doc, сводка 2026-09-18 по странице тарифов Bybit, спот Non-VIP; первичный снимок не сохранён, просмотрено 2026-09-18
     maker_fee: null
     fee_level: null
 
@@ -152,7 +152,7 @@ exchanges:
     #   только метаданные, сами таблицы подгружаются скриптом
     #   (проверено 2026-09-17). Смотреть вручную: уровень Lv1 для обычного
     #   пользователя, спот, без учёта удержания OKB.
-    taker_fee: null
+    taker_fee: 0.001  # источник: doc, сводка 2026-09-18 по странице тарифов OKX, спот базовый уровень; первичный снимок не сохранён, просмотрено 2026-09-18
     maker_fee: null
     fee_level: null
 
@@ -188,7 +188,7 @@ exchanges:
     #   (не «instant buy» в приложении - это другая, более дорогая схема).
     #   Поля fees и fees_maker в /0/public/AssetPairs выглядят как публичная
     #   комиссия, но пусты у всех 1450 пар - проверено перебором.
-    taker_fee: null
+    taker_fee: 0.008  # источник: doc, https://www.kraken.com/features/fee-schedule - прогон 2026-09-17 (Kraken Pro, уровень 1: мейкер 0,40 %, тейкер 0,80 %); подтверждено сводкой 2026-09-18, просмотрено 2026-09-17
     maker_fee: null
     fee_level: null
 
@@ -235,20 +235,19 @@ networks:
       block_time_sec: 600.0
       withdrawal_fee:
         binance: 2.0e-05  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
-        okx: null
-        kraken: null
+        bybit: 3.5e-05    # источник: doc, сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён, просмотрено 2026-09-18
+        okx: 1.5e-05      # источник: doc, сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён, просмотрено 2026-09-18
+        kraken: 1.5e-05   # источник: doc, сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён, просмотрено 2026-09-18
       min_withdrawal:
         binance: 0.0001  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
-        okx: null
-        kraken: null
+        bybit: 0.00027   # источник: doc, сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён, просмотрено 2026-09-18
+        okx: 9.5e-05     # источник: doc, сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён, просмотрено 2026-09-18
+        kraken: 0.000218 # источник: doc, сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён, просмотрено 2026-09-18
       confirmations:
         binance: 1  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
+        bybit: 1    # источник: doc, сводка 2026-09-18 по справке Bybit; взято число для зачисления депозита (1), не для разблокировки вывода (2), просмотрено 2026-09-18
         okx: null
-        kraken: null
-
+        kraken: 3   # источник: doc, сводка 2026-09-18 по справке Kraken о времени зачисления депозитов, просмотрено 2026-09-18
   ETH:
     # Выбор сети для ETH меняет результат сильнее всего: вывод через
     # основную сеть и через L2 отличаются на порядок по стоимости.
@@ -265,19 +264,19 @@ networks:
       block_time_sec: 12.0
       withdrawal_fee:
         binance: 7.0e-05  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
-        okx: null
-        kraken: null
+        bybit: 0.0003     # источник: doc, сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён, просмотрено 2026-09-18
+        okx: 9.4e-05      # источник: doc, сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён, просмотрено 2026-09-18
+        kraken: 0.00014   # источник: doc, сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён, просмотрено 2026-09-18
       min_withdrawal:
         binance: 0.002  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
-        okx: null
-        kraken: null
+        bybit: 0.0015   # источник: doc, сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён, просмотрено 2026-09-18
+        okx: 0.0011     # источник: doc, сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён, просмотрено 2026-09-18
+        kraken: 0.000168 # источник: doc, сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён, просмотрено 2026-09-18
       confirmations:
         binance: 6  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
+        bybit: 6    # источник: doc, сводка 2026-09-18 по справке Bybit; зачисление депозита (6), не финализация (64), просмотрено 2026-09-18
         okx: null
-        kraken: null
+        kraken: 30  # источник: doc, сводка 2026-09-18 по справке Kraken о времени зачисления депозитов, просмотрено 2026-09-18
     - name: Arbitrum One
       code: ARBITRUM
       # источник: api, замер по 200 последним блокам через arb1.arbitrum.io/rpc,
@@ -290,17 +289,17 @@ networks:
         kraken: null
       withdrawal_fee:
         binance: 2.0e-05  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
-        okx: null
-        kraken: null
+        bybit: 4.0e-05    # источник: doc, сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён, просмотрено 2026-09-18
+        okx: 2.2e-06      # источник: doc, сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён, просмотрено 2026-09-18
+        kraken: 0.00015   # источник: doc, сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён, просмотрено 2026-09-18
       min_withdrawal:
         binance: 0.0003  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
-        okx: null
-        kraken: null
+        bybit: 4.0e-05   # источник: doc, сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён, просмотрено 2026-09-18
+        okx: 0.0011      # источник: doc, сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён, просмотрено 2026-09-18
+        kraken: 0.0003   # источник: doc, сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён, просмотрено 2026-09-18
       confirmations:
         binance: 120  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
+        bybit: 120    # источник: doc, сводка 2026-09-18 по справке Bybit; зачисление депозита (120), не финализация (3360), просмотрено 2026-09-18
         okx: null
         kraken: null
 
@@ -317,17 +316,17 @@ networks:
       block_time_sec: 0.3182
       withdrawal_fee:
         binance: 0.001  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
-        okx: null
-        kraken: null
+        bybit: 0.001    # источник: doc, сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён, просмотрено 2026-09-18
+        okx: 0.00025    # источник: doc, сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён, просмотрено 2026-09-18
+        kraken: 0.005   # источник: doc, сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён, просмотрено 2026-09-18
       min_withdrawal:
         binance: 0.01  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
-        okx: null
-        kraken: null
+        bybit: 0.03    # источник: doc, сводка 2026-09-18 по странице вывода Bybit; первичный снимок не сохранён, просмотрено 2026-09-18
+        okx: 0.0013    # источник: doc, сводка 2026-09-18 по странице вывода OKX; первичный снимок не сохранён, просмотрено 2026-09-18
+        kraken: 0.011  # источник: doc, сводка 2026-09-18 по странице вывода Kraken; первичный снимок не сохранён, просмотрено 2026-09-18
       confirmations:
         binance: 1  # источник: doc, https://www.binance.com/bapi/capital/v1/public/capital/getNetworkCoinAll, просмотрено 2026-09-17
-        bybit: null
+        bybit: 200  # источник: doc, сводка 2026-09-18 по справке Bybit; зачисление депозита, просмотрено 2026-09-18
         okx: null
         kraken: null
 

@@ -99,6 +99,32 @@ def check_types(cfg: dict) -> list[str]:
     return problems
 
 
+def check_consistency(cfg: dict) -> list[str]:
+    """Проверки на противоречия между числами, а не внутри одного числа.
+
+    Комиссия вычитается из выводимой суммы. Значит минимальный вывод обязан
+    быть больше комиссии - иначе при выводе минимума получатель не получит
+    ничего, и такая пара чисел не может быть верна одновременно.
+    """
+    problems = []
+    for coin, nets in cfg.get("networks", {}).items():
+        for net in nets:
+            fees = net.get("withdrawal_fee") or {}
+            mins = net.get("min_withdrawal") or {}
+            for exch in fees:
+                fee, minimum = fees.get(exch), mins.get(exch)
+                if fee is None or minimum is None:
+                    continue
+                if not isinstance(fee, (int, float)) or not isinstance(minimum, (int, float)):
+                    continue
+                if minimum <= fee:
+                    problems.append(
+                        f"{coin}/{net['code']}/{exch}: минимальный вывод "
+                        f"{minimum} не больше комиссии {fee} - при выводе "
+                        f"минимума получатель получит {minimum - fee:.8f} {coin}")
+    return problems
+
+
 def check_against_exchange(cfg: dict, live: bool) -> tuple[list[str], list[str]]:
     """Сверяем instrument_rules с тем, что реально отдаёт биржа."""
     skipped: list[str] = []
@@ -284,7 +310,15 @@ def main(argv: list[str]) -> int:
     else:
         print("  порядок: все заполненные значения - числа")
 
-    print("\n3. Сверка чисел с биржей")
+    print("\n3. Противоречия между числами")
+    consistency = check_consistency(cfg)
+    if consistency:
+        for p in consistency:
+            print(f"  ВНИМАНИЕ  {p}")
+    else:
+        print("  порядок: минимальный вывод везде больше комиссии")
+
+    print("\n4. Сверка чисел с биржей")
     drift, skipped = check_against_exchange(cfg, live)
     for p in drift:
         print(f"  РАСХОЖДЕНИЕ  {p}")
@@ -294,7 +328,7 @@ def main(argv: list[str]) -> int:
         n = (len(cfg["exchanges"]) * len(cfg["symbols"]) - len(skipped)) * len(RULE_FIELDS)
         print(f"  порядок: {n} значений совпали со значениями биржи")
 
-    print("\n4. Полнота")
+    print("\n5. Полнота")
     pending, total_pending = collect_pending(cfg)
     lines_pending = sum(len(v) for v in pending.values())
     if total_pending:
