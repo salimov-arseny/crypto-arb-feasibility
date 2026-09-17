@@ -66,6 +66,7 @@ class OrderBook:
     fetched_at: float            # момент получения у нас, unix-время UTC
     latency_ms: float | None = None
     source_seq: int | None = None   # версия стакана, если биржа её сообщает
+    exchange_ts: float | None = None  # время снимка по часам биржи, unix UTC
 
     def __post_init__(self) -> None:
         _validate_side(self.bids, "bids", descending=True, where=self._where)
@@ -105,6 +106,20 @@ class OrderBook:
     def spread_bps(self) -> float:
         """Спред в базисных пунктах: 1 б.п. = 0,01 % = 0,0001."""
         return self.spread / self.best_bid * 10_000
+
+    @property
+    def exchange_lag_sec(self) -> float | None:
+        """Сколько прошло между отметкой биржи и моментом получения у нас.
+
+        Биржа сообщает своё время не всегда: Bybit и OKX сообщают, Binance
+        и Kraken - нет. Где сообщает, эта величина точнее для оценки
+        рассинхронизации снимков, чем наше локальное время: в неё не входит
+        сетевая задержка. Где не сообщает, остаётся None, и на шаге 6
+        придётся обходиться моментом получения.
+        """
+        if self.exchange_ts is None:
+            return None
+        return self.fetched_at - self.exchange_ts
 
     def depth(self, side: str) -> float:
         """Суммарный объём видимых уровней стороны, в базовой валюте."""
@@ -154,6 +169,7 @@ class OrderBook:
         fetched_at: float,
         latency_ms: float | None = None,
         source_seq: int | None = None,
+        exchange_ts: float | None = None,
     ) -> OrderBook:
         """Собрать стакан из сырых уровней биржи.
 
@@ -173,7 +189,7 @@ class OrderBook:
         return cls(exchange=exchange, symbol=symbol,
                    bids=tuple(bids), asks=tuple(asks),
                    fetched_at=fetched_at, latency_ms=latency_ms,
-                   source_seq=source_seq)
+                   source_seq=source_seq, exchange_ts=exchange_ts)
 
 
 # --------------------------------------------------------------------------
