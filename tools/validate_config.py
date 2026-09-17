@@ -208,6 +208,72 @@ def collect_pending(cfg: dict) -> tuple[dict[str, list[str]], int]:
     return pending, count
 
 
+def check_readiness(cfg: dict) -> dict[str, list[str]]:
+    """Какие шаги проекта уже обеспечены конфигом, а какие ещё нет.
+
+    Сводный счётчик «столько-то значений в работе» отвечает на вопрос
+    «всё ли заполнено», а работать надо с вопросом «можно ли делать
+    следующий шаг». Это разные вопросы: число подтверждений сети нужно
+    только risk.py на шаге 7, и его отсутствие не мешает ни собирать
+    стаканы, ни считать издержки.
+    """
+    exchanges = list(cfg["exchanges"])
+    filled = lambda v: v is not None
+
+    # Эндпоинты и тикеры - основа всего, что ходит в сеть.
+    feeds: list[str] = []
+    for key, ex in cfg["exchanges"].items():
+        if not ex.get("rest_base"):
+            feeds.append(f"{key}.rest_base")
+        if not (ex.get("endpoints") or {}).get("orderbook"):
+            feeds.append(f"{key}.endpoints.orderbook")
+        for sym in cfg["symbols"]:
+            if not (ex.get("tickers") or {}).get(sym):
+                feeds.append(f"{key}.tickers[{sym}]")
+
+    # Издержки: комиссия сделки, ограничения площадки, плата за вывод.
+    # min_notional сознательно не проверяем: OKX его не публикует,
+    # и расчёт должен уметь работать без него.
+    costs: list[str] = []
+    for key, ex in cfg["exchanges"].items():
+        if not filled(ex.get("taker_fee")):
+            costs.append(f"{key}.taker_fee")
+        for sym in cfg["symbols"]:
+            rules = ex["instrument_rules"][sym]
+            for field in ("tick_size", "step_size", "min_qty"):
+                if not filled(rules.get(field)):
+                    costs.append(f"{key}/{sym}.{field}")
+    for coin, nets in cfg.get("networks", {}).items():
+        for net in nets:
+            for field in ("withdrawal_fee", "min_withdrawal"):
+                for exch in exchanges:
+                    if not filled((net.get(field) or {}).get(exch)):
+                        costs.append(f"{coin}/{net['code']}.{field}.{exch}")
+
+    # Риск перевода: длительность = подтверждения x время блока.
+    risk: list[str] = []
+    for coin, nets in cfg.get("networks", {}).items():
+        for net in nets:
+            if not filled(net.get("block_time_sec")):
+                risk.append(f"{coin}/{net['code']}.block_time_sec")
+            for exch in exchanges:
+                if not filled((net.get("confirmations") or {}).get(exch)):
+                    risk.append(f"{coin}/{net['code']}.confirmations.{exch}")
+
+    scan = list(feeds)
+    for field in ("interval_sec", "max_snapshot_skew_sec", "timeout_sec", "retries"):
+        if not filled((cfg.get("scan") or {}).get(field)):
+            scan.append(f"scan.{field}")
+
+    return {
+        "шаги 2-3: стакан, VWAP, фетчеры": feeds,
+        "шаг 4: costs.py, издержки": costs,
+        "шаг 5: arbitrage.py, net(V) и оптимум": costs,
+        "шаг 6: scan.py, сбор лога": scan,
+        "шаг 7: risk.py, риск перевода": risk,
+    }
+
+
 def main(argv: list[str]) -> int:
     live = "--live" in argv
     cfg = yaml.safe_load(CONFIG.read_text(encoding="utf-8"))
@@ -265,17 +331,29 @@ def main(argv: list[str]) -> int:
     else:
         print("  порядок: незаполненных значений нет")
 
+    print("\n6. Готовность по шагам проекта")
+    readiness = check_readiness(cfg)
+    for step, missing in readiness.items():
+        if missing:
+            print(f"  НЕ ГОТОВ  {step}")
+            print(f"            не хватает {len(missing)}: {', '.join(missing)}")
+        else:
+            print(f"  готов     {step}")
+
     print("\n" + "=" * 72)
     blocking = structure + types + drift
     if blocking:
         print(f"НЕ ГОТОВ: {len(blocking)} ошибок структуры или расхождений.")
         return 2
     if total_pending:
+        blocked = [s for s, m in readiness.items() if m]
         print(f"ЧАСТИЧНО ГОТОВ: структура верна, числа из API сверены, "
               f"но {total_pending} значений ещё не заполнено.")
-        print("Расчёт издержек (шаг 4) запускать нельзя - результат будет пустым.")
-        print("Сбор стаканов (шаги 2, 3, 6) запускать можно: он этих чисел "
-              "не требует.")
+        if blocked:
+            print(f"Это блокирует: {'; '.join(blocked)}.")
+            print("Остальные шаги обеспечены - см. раздел 6.")
+        else:
+            print("Ни один шаг проекта это не блокирует - см. раздел 6.")
         return 1
     print("ГОТОВ: конфиг заполнен полностью и сверен с биржами.")
     return 0
