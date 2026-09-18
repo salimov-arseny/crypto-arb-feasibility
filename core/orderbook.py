@@ -157,6 +157,46 @@ class OrderBook:
             return (self.best_bid - execution.vwap) / self.best_bid * 10_000
         raise OrderBookError(f"сторона должна быть buy или sell, а не {side!r}")
 
+    # ---- сохранение и восстановление -------------------------------------
+
+    def to_record(self) -> dict:
+        """Стакан в виде словаря для записи в файл.
+
+        Нужно ради графика net(V): лог наблюдений хранит только оптимум
+        каждого наблюдения - одну точку, - а кривая строится по целому
+        стакану. Поэтому сборщик периодически сохраняет стаканы, и
+        анализ восстанавливает их отсюда же.
+        """
+        return {
+            "exchange": self.exchange,
+            "symbol": self.symbol,
+            "fetched_at": self.fetched_at,
+            "latency_ms": self.latency_ms,
+            "source_seq": self.source_seq,
+            "exchange_ts": self.exchange_ts,
+            "bids": [list(level) for level in self.bids],
+            "asks": [list(level) for level in self.asks],
+        }
+
+    @classmethod
+    def from_record(cls, record: dict) -> OrderBook:
+        """Восстановить стакан из словаря, записанного to_record.
+
+        Через конструктор, а не в обход него: сохранённый стакан проходит
+        те же проверки, что и свежий, и испорченный файл не просочится
+        в анализ тихо.
+        """
+        return cls(
+            exchange=record["exchange"],
+            symbol=record["symbol"],
+            bids=tuple((float(p), float(q)) for p, q in record["bids"]),
+            asks=tuple((float(p), float(q)) for p, q in record["asks"]),
+            fetched_at=float(record["fetched_at"]),
+            latency_ms=record.get("latency_ms"),
+            source_seq=record.get("source_seq"),
+            exchange_ts=record.get("exchange_ts"),
+        )
+
     # ---- построение ------------------------------------------------------
 
     @classmethod

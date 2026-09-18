@@ -250,3 +250,33 @@ def test_nonpositive_level_is_rejected() -> None:
 def test_nonpositive_volume_is_rejected(book: OrderBook, volume: float) -> None:
     with pytest.raises(OrderBookError, match="положительным"):
         book.buy(volume)
+
+
+# --------------------------------------------------------------------------
+#  Сохранение и восстановление
+# --------------------------------------------------------------------------
+
+def test_book_survives_a_round_trip_through_json(book: OrderBook) -> None:
+    """Стакан, сохранённый сборщиком, должен восстанавливаться без потерь.
+
+    На этом держится график net(V): лог наблюдений хранит только оптимум,
+    и кривую строит анализ по сохранённому стакану.
+    """
+    import json
+
+    restored = OrderBook.from_record(json.loads(json.dumps(book.to_record())))
+    assert restored.bids == book.bids
+    assert restored.asks == book.asks
+    assert restored.buy(4.0).vwap == pytest.approx(book.buy(4.0).vwap)
+
+
+def test_restored_book_is_validated() -> None:
+    """Испорченный файл не должен просочиться в анализ тихо.
+
+    Восстановление идёт через конструктор, поэтому перекрещенный стакан
+    отвергается так же, как свежий.
+    """
+    record = {"exchange": "ТЕСТ", "symbol": "X/Y", "fetched_at": 0.0,
+              "bids": [[101.0, 1.0]], "asks": [[100.0, 1.0]]}
+    with pytest.raises(OrderBookError, match="перекрещен"):
+        OrderBook.from_record(record)

@@ -70,3 +70,25 @@ def test_rejected_observation_is_written_not_dropped() -> None:
     # Все колонки присутствуют, незаполненные пусты - csv остаётся ровным.
     assert set(row) == set(COLUMNS)
     assert row["net"] == ""
+
+
+# --------------------------------------------------------------------------
+#  Периодическое сохранение стаканов
+# --------------------------------------------------------------------------
+
+from scan import books_due  # noqa: E402
+
+
+def test_first_sweep_always_saves_books() -> None:
+    """Даже в коротком прогоне должен быть хотя бы один стакан для графика."""
+    assert books_due(1, every_sweeps=60)
+
+
+def test_books_saved_every_n_sweeps() -> None:
+    """Интервал 5 с, стаканы раз в 300 с -> каждый 60-й снимок: 1, 61, 121."""
+    saved = [s for s in range(1, 200) if books_due(s, every_sweeps=60)]
+    assert saved == [1, 61, 121, 181]
+
+
+def test_books_disabled_when_interval_is_zero() -> None:
+    assert not any(books_due(s, every_sweeps=0) for s in range(1, 100))

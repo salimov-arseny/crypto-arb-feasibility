@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import csv
 import itertools
+import json
 import pathlib
 import signal
 import sys
@@ -38,6 +39,7 @@ from fetchers import FetchError, build_all
 
 ROOT = pathlib.Path(__file__).resolve().parent
 DEFAULT_OUT = ROOT / "logs" / "observations.csv"
+DEFAULT_BOOKS = ROOT / "logs" / "books.jsonl"
 
 # Как часто сбрасывать файл на диск. Многочасовой прогон обязан пережить
 # падение: буфер в несколько десятков строк - это секунды наблюдений.
@@ -71,6 +73,7 @@ class Tally:
     no_book: int = 0
     no_opt: int = 0
     profitable: int = 0
+    books: int = 0
 
 
 def sweep_books(fetchers: dict[str, Any], symbols: list[str]
@@ -166,8 +169,33 @@ def observe(route: Route, book_buy: OrderBook, book_sell: OrderBook,
     return row
 
 
+def books_due(sweep: int, every_sweeps: int) -> bool:
+    """Сохранять ли стаканы на этом снимке.
+
+    Первый снимок сохраняется всегда - чтобы даже в коротком прогоне был
+    хотя бы один стакан для графика. Дальше - каждый every_sweeps-й.
+    """
+    if every_sweeps <= 0:
+        return False
+    return (sweep - 1) % every_sweeps == 0
+
+
+def write_books(fh, books: dict[tuple[str, str], OrderBook], sweep: int,
+                ts: str) -> int:
+    """Дописать стаканы снимка в jsonl: одна строка - один стакан.
+
+    Номер снимка и время - те же, что в логе наблюдений: по ним анализ
+    находит стакан, из которого получилось конкретное наблюдение.
+    """
+    for book in books.values():
+        record = book.to_record()
+        record.update(sweep=sweep, ts_utc=ts)
+        fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+    return len(books)
+
+
 def run(cfg: dict[str, Any], out_path: pathlib.Path, minutes: float | None,
-        once: bool) -> Tally:
+        once: bool, books_path: pathlib.Path = DEFAULT_BOOKS) -> Tally:
     fetchers = build_all(cfg)
     symbols = cfg["symbols"]
     interval = float(cfg["scan"]["interval_sec"])
@@ -211,10 +239,16 @@ def run(cfg: dict[str, Any], out_path: pathlib.Path, minutes: float | None,
           + (f", не ответили: {len(warm_failures)}" if warm_failures else ""),
           file=sys.stderr)
 
+    books_every_sec = float(cfg["scan"].get("books_every_sec", 0) or 0)
+    books_every = (max(1, round(books_every_sec / interval))
+                   if books_every_sec > 0 else 0)
+
     tally = Tally()
     deadline = None if minutes is None else time.time() + minutes * 60
 
-    with out_path.open("a", newline="", encoding="utf-8") as fh:
+    books_path.parent.mkdir(parents=True, exist_ok=True)
+    with out_path.open("a", newline="", encoding="utf-8") as fh, \
+            books_path.open("a", encoding="utf-8") as books_fh:
         writer = csv.DictWriter(fh, fieldnames=COLUMNS)
         if is_new:
             writer.writeheader()
@@ -225,6 +259,10 @@ def run(cfg: dict[str, Any], out_path: pathlib.Path, minutes: float | None,
             tally.sweeps += 1
 
             books, failures = sweep_books(fetchers, symbols)
+
+            if books_due(tally.sweeps, books_every):
+                tally.books += write_books(books_fh, books, tally.sweeps, ts)
+                books_fh.flush()
 
             for symbol in symbols:
                 skew = symbol_skew(books, symbol)
@@ -298,6 +336,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="один снимок и выход")
     parser.add_argument("--out", type=pathlib.Path, default=DEFAULT_OUT,
                         help=f"куда писать (по умолчанию {DEFAULT_OUT})")
+    parser.add_argument("--books", type=pathlib.Path, default=DEFAULT_BOOKS,
+                        help=f"куда сохранять стаканы (по умолчанию {DEFAULT_BOOKS})")
     args = parser.parse_args(argv)
 
     cfg = load_config()
@@ -305,8 +345,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Интервал {cfg['scan']['interval_sec']} с, "
           f"допуск на разброс снимков {cfg['scan']['max_snapshot_skew_sec']} с, "
           f"глубина {cfg['meta']['orderbook_depth']} уровней")
+    print(f"Стаканы раз в {cfg['scan'].get('books_every_sec', 0)} с -> {args.books}")
 
-    tally = run(cfg, args.out, args.minutes, args.once)
+    tally = run(cfg, args.out, args.minutes, args.once, args.books)
 
     print(f"\nСнимков: {tally.sweeps}. Строк записано: {tally.rows}.")
     if tally.rows:
@@ -320,6 +361,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  без стакана:             {tally.no_book:>7} "
               f"({tally.no_book / tally.rows * 100:.1f} %)")
         print(f"  негде искать оптимум:    {tally.no_opt:>7}")
+        print(f"  сохранено стаканов:      {tally.books:>7}")
     return 0
 
 
