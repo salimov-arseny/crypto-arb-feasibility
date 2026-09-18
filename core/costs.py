@@ -23,7 +23,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from decimal import Decimal, ROUND_DOWN
+from decimal import Decimal, ROUND_DOWN, ROUND_UP
 from typing import Any
 
 
@@ -52,6 +52,21 @@ def round_down_to_step(value: float, step: float) -> float:
     # str() даёт то десятичное представление, которое имел в виду человек,
     # а не двоичное приближение.
     units = (Decimal(str(value)) / Decimal(str(step))).to_integral_value(ROUND_DOWN)
+    return float(units * Decimal(str(step)))
+
+
+def round_up_to_step(value: float, step: float) -> float:
+    """Округлить объём вверх до кратного шагу.
+
+    Нужно для нижней границы поиска: округление минимально допустимого
+    объёма ВНИЗ дало бы объём меньше минимально допустимого. Считаем
+    через Decimal по той же причине, что и round_down_to_step.
+    """
+    if step <= 0:
+        raise CostError(f"шаг объёма должен быть положительным, получено {step}")
+    if value < 0:
+        raise CostError(f"объём не может быть отрицательным: {value}")
+    units = (Decimal(str(value)) / Decimal(str(step))).to_integral_value(ROUND_UP)
     return float(units * Decimal(str(step)))
 
 
