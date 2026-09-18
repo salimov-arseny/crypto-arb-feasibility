@@ -35,7 +35,8 @@ from typing import Any
 from core.config import load_config
 from core.orderbook import OrderBook
 from core.risk import (RiskError, ReturnSample, assess, horizon_returns,
-                       load_closes, required_net_bps)
+                       load_closes, required_net_bps, survival_empirical,
+                       survival_normal)
 
 ROOT = pathlib.Path(__file__).resolve().parent
 DEFAULT_LOG = ROOT / "logs" / "observations.csv"
@@ -297,6 +298,8 @@ class LayerSummary:
     withdrawal: float
     transfer: float | None   # цена времени перевода при RISK_LEVEL
     net: float
+    group: str = ""          # группа маршрутов по комиссии, если делили
+    best: float | None = None  # лучший итог в группе - насколько близко к нулю
 
     def largest(self) -> tuple[str, float]:
         """Какой слой отнимает больше всех - прямой ответ на вопрос README."""
@@ -310,26 +313,32 @@ class LayerSummary:
 
 
 def layer_summary(rows: list[dict[str, Any]],
-                  transfer_bps: dict[tuple[str, float], float] | None = None
-                  ) -> list[LayerSummary]:
+                  transfer_bps: dict[tuple[str, float], float] | None = None,
+                  by_fee: bool = False) -> list[LayerSummary]:
     """Средний вклад каждого слоя по инструментам.
 
     Берутся только наблюдения с положительным наивным расхождением: вопрос
     README - что съедает расхождение, а там, где его нет, съедать нечего.
     Медиана, а не среднее: распределения тяжелохвостые, и один выброс
     сдвинул бы среднее сильнее, чем тысяча обычных наблюдений.
+
+    С by_fee=True маршруты дополнительно делятся по суммарной комиссии.
+    Без этого деления медиана смешивает дешёвые и дорогие маршруты и прячет
+    дорогие: при 60 % дешёвых медиана комиссии выходит 20 б.п., и о маршрутах
+    с 90 б.п. таблица молчит.
     """
-    by_symbol: dict[str, list[tuple[Layers, dict]]] = defaultdict(list)
+    groups: dict[tuple[str, str], list[tuple[Layers, dict]]] = defaultdict(list)
     for row in usable(rows):
         if not is_positive(row):
             continue
         layers = decompose(row)
         if layers is not None:
-            by_symbol[row["symbol"]].append((layers, row))
+            group = fee_group(row) if by_fee else ""
+            groups[(group, row["symbol"])].append((layers, row))
 
     result = []
-    for symbol in sorted(by_symbol):
-        items = by_symbol[symbol]
+    for group, symbol in sorted(groups):
+        items = groups[(group, symbol)]
         transfer = None
         if transfer_bps:
             values = [transfer_bps[(symbol, row["transfer_time_sec"])]
@@ -346,6 +355,8 @@ def layer_summary(rows: list[dict[str, Any]],
             withdrawal=statistics.median(l.withdrawal for l, _ in items),
             transfer=transfer,
             net=statistics.median(l.net for l, _ in items),
+            group=group,
+            best=max(l.net for l, _ in items),
         ))
     return result
 
@@ -471,6 +482,94 @@ def optimal_volumes(rows: list[dict[str, Any]]
 
 
 # --------------------------------------------------------------------------
+#  Дополнительные величины для выводов
+# --------------------------------------------------------------------------
+
+def rule_of_three(n: int) -> float | None:
+    """Верхняя 95-процентная граница доли, если в n испытаниях успехов ноль.
+
+    Из (1 - p)^n = 0,05 следует p = 1 - 0,05^(1/n) ≈ -ln(0,05)/n ≈ 3/n.
+    Ноль выживших - это не ноль вероятности, а «вероятность, скорее всего,
+    не больше 3/n». Формула предполагает независимые испытания; где они
+    зависимы, n надо брать по числу независимых единиц.
+    """
+    return 3.0 / n if n > 0 else None
+
+
+def fee_bps(row: dict[str, Any]) -> float | None:
+    """Суммарная комиссия двух сделок маршрута, б.п. оборота.
+
+    Группировка по ней, а не по названию биржи: так анализ не зашивает
+    в себя, что дорогая площадка именно Kraken, а берёт это из данных.
+    """
+    if not row.get("rel_turnover") or row.get("rel_fee_buy") is None:
+        return None
+    return (row["rel_fee_buy"] + row["rel_fee_sell"]) / row["rel_turnover"] * 10_000
+
+
+def fee_group(row: dict[str, Any]) -> str:
+    value = fee_bps(row)
+    return "?" if value is None else f"комиссия {round(value):.0f} б.п."
+
+
+def failures_by_exchange(rows: list[dict[str, Any]], exchanges: list[str]
+                         ) -> tuple[Counter, int]:
+    """Какая биржа сколько раз не ответила.
+
+    В строке брака не записано, кто именно отказал, - но это восстанавливается:
+    биржа не ответила в снимке по инструменту, если ВСЕ её маршруты в нём
+    помечены fetch_failed. Возвращает счётчик и число пар «снимок, инструмент».
+    """
+    groups: dict[tuple[int, str], list[dict]] = defaultdict(list)
+    for r in rows:
+        groups[(r["sweep"], r["symbol"])].append(r)
+    down: Counter = Counter()
+    for items in groups.values():
+        for ex in exchanges:
+            mine = [r for r in items if ex in (r["buy"], r["sell"])]
+            if mine and all(r["status"] == "fetch_failed" for r in mine):
+                down[ex] += 1
+    return down, len(groups)
+
+
+def widest_share_in_costliest_group(rows: list[dict[str, Any]],
+                                    top: int = 100) -> tuple[int, int, str] | None:
+    """Сколько из `top` самых широких наивных расхождений приходится
+    на самую дорогую по комиссиям группу маршрутов."""
+    good = [r for r in usable(rows) if is_positive(r) and fee_bps(r) is not None]
+    if not good:
+        return None
+    costliest = max({fee_group(r) for r in good},
+                    key=lambda g: float(g.split()[1]))
+    widest = sorted(good, key=lambda r: -r["naive_spread_bps"])[:top]
+    return sum(1 for r in widest if fee_group(r) == costliest), len(widest), costliest
+
+
+def fee_threshold_bps(rows: list[dict[str, Any]]) -> float | None:
+    """Какая суммарная комиссия дала бы выжить хотя бы одному наблюдению.
+
+    Для каждого наблюдения самой дешёвой группы - что остаётся ДО комиссий:
+    наивное минус проскальзывание минус вывод. Максимум этой величины и есть
+    порог: при комиссии ниже него выжило бы хоть одно наблюдение. Оценка
+    сверху: при меньших комиссиях оптимальный объём сдвинулся бы, но остальные
+    слои от этого не уменьшатся.
+    """
+    good = [r for r in usable(rows) if is_positive(r) and fee_bps(r) is not None]
+    if not good:
+        return None
+    cheapest = min({fee_group(r) for r in good},
+                   key=lambda g: float(g.split()[1]))
+    values = []
+    for r in good:
+        if fee_group(r) != cheapest:
+            continue
+        layers = decompose(r)
+        if layers is not None:
+            values.append(layers.naive - layers.slippage - layers.withdrawal)
+    return max(values) if values else None
+
+
+# --------------------------------------------------------------------------
 #  Отчёт
 # --------------------------------------------------------------------------
 
@@ -489,6 +588,11 @@ def report(rows: list[dict[str, Any]], cfg: dict[str, Any],
     print(f"Наблюдений:  {q.total:,}")
     for status, count in sorted(q.by_status.items(), key=lambda kv: -kv[1]):
         print(f"  {status:<15} {count:>9,}  ({count / q.total * 100:5.1f} %)")
+    down, pairs = failures_by_exchange(rows, list(cfg["exchanges"]))
+    if down:
+        print("Кто не отвечал (доля пар «снимок, инструмент»):")
+        for ex, n in down.most_common():
+            print(f"  {ex:<15} {n:>9,}  ({n / pairs * 100:5.1f} % из {pairs:,})")
 
     bad = optimum_disagreements(rows)
     if bad:
@@ -507,6 +611,14 @@ def report(rows: list[dict[str, Any]], cfg: dict[str, Any],
           f"   ({s.survivors} из {s.positive})")
     print(f"Для сравнения, от всех годных:  "
           f"{fmt(None if s.coefficient_all is None else s.coefficient_all * 100, 4, ' %')}")
+    if s.survivors == 0 and s.positive:
+        positive_sweeps = len({r["sweep"] for r in usable(rows) if is_positive(r)})
+        print(f"\nВыживших ноль - это не ноль вероятности. Верхняя 95 %-граница доли")
+        print(f"по правилу трёх:")
+        print(f"  наблюдения как независимые:  3/{s.positive:,} = "
+              f"{rule_of_three(s.positive) * 100:.4f} %")
+        print(f"  по снимкам (внутри снимка маршруты зависимы): 3/{positive_sweeps:,} = "
+              f"{rule_of_three(positive_sweeps) * 100:.3f} %")
 
     good = usable(rows)
     survivors = [r for r in good if is_positive(r) and is_survivor(r)]
@@ -543,15 +655,63 @@ def report(rows: list[dict[str, Any]], cfg: dict[str, Any],
     print("\n" + "=" * 78)
     print("ЧТО СЪЕДАЕТ РАСХОЖДЕНИЕ, медиана по наблюдениям, б.п. оборота")
     print("=" * 78)
-    print(f"{'инструмент':<10} {'набл.':>7} {'наивное':>9} {'глубина':>9} "
-          f"{'комиссии':>9} {'вывод':>8} {'перевод':>9} {'итог':>9}   главное")
-    for ls in layer_summary(rows, transfer):
+    print(f"{'группа':<18} {'инструмент':<10} {'набл.':>7} {'наивное':>8} "
+          f"{'глубина':>8} {'комиссии':>9} {'вывод':>6} {'перевод':>8} "
+          f"{'итог':>8} {'лучший':>8}   главное")
+    for ls in layer_summary(rows, transfer, by_fee=True):
         name, value = ls.largest()
-        print(f"{ls.symbol:<10} {ls.n:>7,} {ls.naive:>9.2f} {ls.slippage:>9.2f} "
-              f"{ls.fees:>9.2f} {ls.withdrawal:>8.2f} {fmt(ls.transfer):>9} "
-              f"{ls.net:>9.2f}   {name}")
+        print(f"{ls.group:<18} {ls.symbol:<10} {ls.n:>7,} {ls.naive:>8.2f} "
+              f"{ls.slippage:>8.2f} {ls.fees:>9.2f} {ls.withdrawal:>6.2f} "
+              f"{fmt(ls.transfer):>8} {ls.net:>8.2f} {fmt(ls.best):>8}   {name}")
     print(f"\n«перевод» - сколько надо заработать сверх нуля, чтобы пережить")
     print(f"перевод с вероятностью {RISK_LEVEL:.0%}, в нормальном приближении.")
+
+    print("\n" + "=" * 78)
+    print("ДЛЯ ВЫВОДОВ")
+    print("=" * 78)
+    wide = widest_share_in_costliest_group(rows)
+    if wide:
+        hit, total, group = wide
+        print(f"Из {total} самых широких наивных расхождений в самой дорогой группе "
+              f"({group}): {hit}")
+    threshold = fee_threshold_bps(rows)
+    if threshold is not None:
+        print(f"Что остаётся ДО комиссий в лучшем наблюдении дешёвой группы: "
+              f"{threshold:.2f} б.п.")
+        print(f"  => чтобы выжило хоть одно, сумма двух комиссий должна быть ниже "
+              f"{threshold:.2f} б.п. (~{threshold / 2 / 100:.3f} % на сторону)")
+    cheap = [r for r in usable(rows) if is_positive(r) and fee_bps(r) is not None]
+    if cheap:
+        low_group = min({fee_group(r) for r in cheap}, key=lambda g: float(g.split()[1]))
+        in_low = [r["naive_spread_bps"] for r in cheap if fee_group(r) == low_group]
+        fee_value = float(low_group.split()[1])
+        print(f"Наибольшее наивное расхождение в дешёвой группе: {max(in_low):.2f} б.п.; "
+              f"комиссия больше в {fee_value / max(in_low):.2f} раза")
+        print(f"Медианное: {statistics.median(in_low):.2f} б.п.; "
+              f"комиссия больше в {fee_value / statistics.median(in_low):.0f} раз")
+
+    if samples:
+        print("\n" + "=" * 78)
+        print("ХВОСТЫ: нормальное приближение против эмпирического")
+        print("=" * 78)
+        print(f"{'инструмент':<10} {'горизонт':>10} {'sigma, бп':>10} {'незав.':>8} "
+              f"{'куртозис':>9} {'P норм.':>9} {'P эмп.':>9} {'завышение':>11}")
+        horizons = sorted({(r["symbol"], r["transfer_time_sec"]) for r in usable(rows)
+                           if r["transfer_time_sec"] is not None})
+        for symbol, horizon in horizons:
+            try:
+                sample = samples.get(symbol, horizon)
+            except RiskError:
+                continue
+            threshold = -3.0 * sample.sigma
+            p_norm = survival_normal(threshold, sample.sigma)
+            p_emp = survival_empirical(threshold, sample.returns)
+            label = f"{horizon:.2f} с" if horizon < 90 else f"{horizon / 60:.0f} мин"
+            print(f"{symbol:<10} {label:>10} {sample.sigma * 1e4:>10.2f} "
+                  f"{sample.effective_n:>8,.0f} {sample.excess_kurtosis:>9.1f} "
+                  f"{p_norm:>9.5f} {p_emp:>9.5f} {(p_norm - p_emp) * 100:>+9.3f} пп")
+        print("Порог -3 сигмы. «незав.» - число независимых наблюдений: окна")
+        print("перекрываются, и формальный размер выборки больше в steps раз.")
 
     if survivors and samples:
         print("\n" + "=" * 78)
@@ -598,6 +758,15 @@ BASELINE = "#c3c2b7"
 SERIES = "#2a78d6"       # единственный цвет данных
 
 
+def ru(value: float, digits: int = 2, sign: bool = False) -> str:
+    """Число для подписи на русском: пробел между разрядами, запятая
+    в дробной части, типографский минус. «7,444» в русском тексте
+    читается как семь целых, а не семь тысяч."""
+    text = f"{value:{'+' if sign else ''},.{digits}f}"
+    return (text.replace(",", "\u00a0").replace(".", ",")
+            .replace("-", "\u2212"))
+
+
 def _style(ax, title: str) -> None:
     ax.set_facecolor(SURFACE)
     ax.set_title(title, loc="left", fontsize=11, color=INK, pad=8)
@@ -624,12 +793,18 @@ def load_books(path: str | pathlib.Path
     return by_sweep
 
 
-def widest_route(cfg: dict[str, Any], books: dict, symbol: str):
-    """Снимок и маршрут с наибольшим наивным расхождением по инструменту.
+def closest_route(cfg: dict[str, Any], books: dict, symbol: str):
+    """Снимок и маршрут, ближе всего подошедшие к прибыли.
 
-    Для графика net(V) берём самый благоприятный случай из сохранённых:
-    если прибыль не появляется даже там, она не появляется нигде.
+    Критерий - наибольший чистый спред в оптимуме по б.п., а не ширина
+    наивного расхождения. Первая версия отбирала по ширине и рассуждала
+    «если прибыли нет даже там, её нет нигде». Лог это опроверг: самые
+    широкие расхождения почти всегда идут через Kraken (96 из 100 самых
+    широких) - у него разреженный стакан, - но там же комиссия тейкера
+    0,8 %, и эти случаи оказывались от прибыли ДАЛЬШЕ всех: чистый спред
+    около -80 б.п. против -15 у лучших маршрутов без Kraken.
     """
+    from core.arbitrage import find_optimum
     from core.costs import CostError, build_route
 
     display = {ex["display_name"]: key for key, ex in cfg["exchanges"].items()}
@@ -640,17 +815,19 @@ def widest_route(cfg: dict[str, Any], books: dict, symbol: str):
             for sell_name in present:
                 if buy_name == sell_name:
                     continue
-                bb = snapshot[(buy_name, symbol)]
-                bs = snapshot[(sell_name, symbol)]
-                naive = (bs.best_bid - bb.best_ask) / bb.best_ask * 10_000
-                if best is not None and naive <= best[0]:
-                    continue
                 try:
                     route = build_route(cfg, symbol, display[buy_name],
                                         display[sell_name])
                 except (CostError, KeyError):
                     continue
-                best = (naive, sweep, route, bb, bs)
+                bb = snapshot[(buy_name, symbol)]
+                bs = snapshot[(sell_name, symbol)]
+                found = find_optimum(route, bb, bs, objective="net_bps").best
+                if found is None:
+                    continue
+                if best is None or found.net_bps > best[0]:
+                    naive = (bs.best_bid - bb.best_ask) / bb.best_ask * 10_000
+                    best = (found.net_bps, naive, sweep, route, bb, bs)
     return best
 
 
@@ -658,8 +835,8 @@ def plot_net_vs_volume(cfg: dict[str, Any], books_path: pathlib.Path,
                        out: pathlib.Path) -> pathlib.Path | None:
     """График 1 из README: net(V) как функция объёма.
 
-    По одной панели на инструмент, для самого благоприятного из сохранённых
-    случаев. Ось объёма логарифмическая: интересное происходит на разных
+    По одной панели на инструмент, для случая, ближе всего подошедшего
+    к прибыли среди сохранённых стаканов. Ось объёма логарифмическая: интересное происходит на разных
     порядках - плата за вывод решает на десятках долларов, проскальзывание
     на сотнях тысяч.
     """
@@ -667,10 +844,10 @@ def plot_net_vs_volume(cfg: dict[str, Any], books_path: pathlib.Path,
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    from core.arbitrage import find_optimum, profile
+    from core.arbitrage import find_optimum, profile, search_bounds
 
     books = load_books(books_path)
-    cases = [(s, widest_route(cfg, books, s)) for s in cfg["symbols"]]
+    cases = [(s, closest_route(cfg, books, s)) for s in cfg["symbols"]]
     cases = [(s, c) for s, c in cases if c is not None]
     if not cases:
         return None
@@ -679,7 +856,7 @@ def plot_net_vs_volume(cfg: dict[str, Any], books_path: pathlib.Path,
                              facecolor=SURFACE)
     axes = axes if len(cases) > 1 else [axes]
 
-    for ax, (symbol, (naive, sweep, route, bb, bs)) in zip(axes, cases):
+    for ax, (symbol, (best_bps, naive, sweep, route, bb, bs)) in zip(axes, cases):
         points = [r for r in profile(route, bb, bs, points=200) if r.usable]
         if not points:
             continue
@@ -698,9 +875,18 @@ def plot_net_vs_volume(cfg: dict[str, Any], books_path: pathlib.Path,
         if opt is not None:
             ax.plot([opt.turnover], [opt.net], "o", markersize=8,
                     color=SERIES, markeredgecolor=SURFACE, markeredgewidth=2)
+            # Если максимум сидит на нижней границе, это не найденный
+            # оптимум, а минимальный допустимый объём: net(V) убывает
+            # монотонно, и внутреннего максимума, какой ожидает README,
+            # нет. Подпись обязана говорить это прямо.
+            low, _ = search_bounds(route, bb, bs)
+            at_bound = abs(opt.volume - low) <= route.volume_step * 1.5
+            where = "на минимальном объёме" if at_bound else "в оптимуме"
+            label = (f"максимум {ru(opt.net, sign=True)} USDT\n{where}\n"
+                     f"(оборот {ru(opt.turnover, 0)} USDT)")
             # Подпись - в пустую область над кривой, со стрелкой к точке:
             # рядом с точкой текст пересекался с самой кривой.
-            ax.annotate(f"максимум {opt.net:+.2f} USDT\nпри обороте {opt.turnover:,.0f} USDT",
+            ax.annotate(label,
                         (opt.turnover, opt.net), xycoords="data",
                         xytext=(0.40, 0.78), textcoords="axes fraction",
                         fontsize=8.5, color=INK_2,
@@ -708,16 +894,21 @@ def plot_net_vs_volume(cfg: dict[str, Any], books_path: pathlib.Path,
                                         linewidth=0.8))
 
         _style(ax, f"{symbol}: {route.buy.name} → {route.sell.name}")
+        ax.title.set_position((0.0, 1.0))
+        ax.set_title(ax.get_title(loc="left"), loc="left", fontsize=11,
+                     color=INK, pad=24)
         ax.set_xlabel("оборот сделки, USDT")
-        # Внутри области графика, в свободном левом нижнем углу: над
-        # панелью эта строка налезала на заголовок.
-        ax.text(0.03, 0.04, f"наивное расхождение {naive:+.2f} б.п.",
+        # Подзаголовок - между заголовком и областью графика. Внизу
+        # области его перечёркивала кривая, над панелью он налезал
+        # на заголовок; поднятый заголовок освобождает для него место.
+        ax.text(0.0, 1.02, f"наивное {ru(naive, sign=True)} б.п. · "
+                           f"чистый в лучшем случае {ru(best_bps, sign=True)} б.п.",
                 transform=ax.transAxes, fontsize=8.5, color=MUTED,
                 va="bottom", ha="left")
     axes[0].set_ylabel("чистая прибыль net(V), USDT")
 
-    fig.suptitle("Чистая прибыль как функция объёма — самый широкий "
-                 "из сохранённых случаев", x=0.01, ha="left", fontsize=12,
+    fig.suptitle("Чистая прибыль как функция объёма — случай, ближе всего "
+                 "подошедший к прибыли", x=0.01, ha="left", fontsize=12,
                  color=INK)
     fig.tight_layout()
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -766,8 +957,12 @@ def plot_net_spread_hist(rows: list[dict[str, Any]],
         ax.axvline(0, color=INK_2, linewidth=1.2)
         survivors = sum(1 for v in values if v > 0)
         _style(ax, symbol)
-        ax.text(1.0, 1.02, f"наблюдений {len(values):,}, "
-                           f"выше нуля {survivors:,}",
+        # Главное число панели - насколько близко к нулю что-то подходило.
+        # Без него видно лишь, что выживших нет, но не видно, сколько
+        # не хватило.
+        ax.text(1.0, 1.02, f"наблюдений {ru(len(values), 0)} · "
+                           f"выше нуля {ru(survivors, 0)} · "
+                           f"лучшее {ru(max(values), sign=True)} б.п.",
                 transform=ax.transAxes, fontsize=8.5, color=MUTED,
                 va="bottom", ha="right")
         ax.set_ylabel("наблюдений")

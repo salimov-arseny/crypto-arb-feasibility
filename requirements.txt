@@ -1,0 +1,6 @@
+# Проверено на Python 3.14.4.
+requests==2.34.2
+PyYAML==6.0.3
+ruamel.yaml==0.19.1     # правка config.yaml с сохранением комментариев
+matplotlib==3.11.2      # только графики в analyze.py
+pytest==9.1.1

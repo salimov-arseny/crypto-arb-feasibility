@@ -261,3 +261,63 @@ def test_load_turns_empty_fields_into_none(tmp_path) -> None:
     assert rows[0]["net"] == pytest.approx(-2.0)
     assert rows[0]["sweep"] == 1
     assert rows[1]["net"] is None
+
+
+# --------------------------------------------------------------------------
+#  Величины для выводов
+# --------------------------------------------------------------------------
+
+from analyze import (failures_by_exchange, fee_bps, fee_group,  # noqa: E402
+                     fee_threshold_bps, rule_of_three)
+
+
+def test_rule_of_three() -> None:
+    """Ноль успехов в 1 000 испытаниях: вероятность, скорее всего, ниже 0,3 %.
+
+    Точное значение 1 - 0,05^(1/n) близко к 3/n уже при n в десятки.
+    """
+    assert rule_of_three(1000) == pytest.approx(0.003)
+    exact = 1 - 0.05 ** (1 / 1000)
+    assert rule_of_three(1000) == pytest.approx(exact, rel=0.01)
+    assert rule_of_three(0) is None
+
+
+def test_fee_group_is_taken_from_data_not_from_exchange_name() -> None:
+    """Комиссии 10 + 10 при обороте 10 000 -> 20 б.п.
+
+    Группировка по величине, а не по названию: анализ не должен зашивать,
+    какая именно биржа дорогая.
+    """
+    r = row(1, "ok", 30.0, -1.0)
+    assert fee_bps(r) == pytest.approx(20.0)
+    assert fee_group(r) == "комиссия 20 б.п."
+
+    costly = row(2, "ok", 30.0, -71.0, rel_fee_sell=80.0)
+    assert fee_bps(costly) == pytest.approx(90.0)
+    assert fee_group(costly) == "комиссия 90 б.п."
+
+
+def test_failures_are_attributed_to_the_exchange_that_did_not_answer() -> None:
+    """Биржа c не ответила в снимке 1: все её маршруты - fetch_failed,
+    а маршрут a -> b в том же снимке годный."""
+    log = [row(1, "ok", 1.0, -1.0, buy="a", sell="b"),
+           row(1, "fetch_failed", None, None, buy="a", sell="c"),
+           row(1, "fetch_failed", None, None, buy="c", sell="b"),
+           row(2, "ok", 1.0, -1.0, buy="a", sell="c")]
+    down, pairs = failures_by_exchange(log, ["a", "b", "c"])
+    assert down == {"c": 1}
+    assert pairs == 2
+
+
+def test_fee_threshold_is_what_remains_before_fees() -> None:
+    """Остаток до комиссий = наивное - глубина - вывод.
+
+    Глубина определена как наивное минус валовая прибыль, поэтому остаток
+    равен валовой прибыли минус вывод. В LOG валовая прибыль у всех
+    годных строк 20 б.п., вывод 1 б.п.:
+
+        остаток = 20 - 1 = 19 б.п.
+
+    При суммарной комиссии ниже 19 б.п. выжило бы хоть одно наблюдение.
+    """
+    assert fee_threshold_bps(LOG) == pytest.approx(19.0)
