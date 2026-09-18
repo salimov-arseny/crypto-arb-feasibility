@@ -219,8 +219,20 @@ class Route:
         """
         return max(self.buy.rules.step_size, self.sell.rules.step_size)
 
-    def min_volume(self, price_buy: float) -> float:
-        """Наименьший допустимый объём - максимум из четырёх ограничений."""
+    def min_volume(self, price_buy: float,
+                   price_sell: float | None = None) -> float:
+        """Наименьший допустимый объём - максимум из всех ограничений.
+
+        Минимальная сумма ордера действует на ОБЕИХ площадках. Первая версия
+        учитывала её только на покупке, а check() требовал и на продаже - две
+        функции расходились в определении допустимого объёма. На графике
+        net(V) это всплыло: максимум стоял на обороте 5 USDT (минимум Binance
+        на продаже), а min_volume считал границей 2,7 USDT и объявлял точку
+        на границе «оптимумом».
+
+        На продаже ограничение относится к ДОСТАВЛЕННОМУ объёму, то есть
+        за вычетом платы за вывод, - отсюда слагаемое withdrawal_fee.
+        """
         limits = [
             self.buy.rules.min_qty,
             self.sell.rules.min_qty,
@@ -228,6 +240,9 @@ class Route:
         ]
         if self.buy.rules.min_notional is not None:
             limits.append(self.buy.rules.min_notional / price_buy)
+        if self.sell.rules.min_notional is not None and price_sell:
+            limits.append(self.sell.rules.min_notional / price_sell
+                          + self.network.withdrawal_fee)
         return max(limits)
 
     def round_volume(self, volume: float) -> float:

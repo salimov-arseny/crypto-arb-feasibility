@@ -149,7 +149,8 @@ def search_bounds(route: Route, book_buy: OrderBook,
     """
     # Вверх до ближайшего допустимого шага: округление вниз дало бы объём
     # меньше минимально допустимого.
-    low = round_up_to_step(route.min_volume(book_buy.best_ask),
+    low = round_up_to_step(route.min_volume(book_buy.best_ask,
+                                            book_sell.best_bid),
                            route.volume_step)
     high = route.round_volume(min(book_buy.depth("ask"), book_sell.depth("bid")))
 

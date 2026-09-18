@@ -267,3 +267,30 @@ def test_missing_taker_fee_is_an_error_not_a_zero() -> None:
                                 "a": {**CFG["exchanges"]["a"], "taker_fee": None}}}
     with pytest.raises(CostError, match="taker_fee"):
         build_route(cfg, "COIN/USDT", "a", "b")
+
+
+def test_minimum_volume_respects_sell_side_notional() -> None:
+    """Минимальная сумма ордера действует и на продаже.
+
+    Биржа-Б требует продажу не меньше 50 USDT. При цене продажи 10
+    и плате за вывод 0,01 монеты нужно купить 50/10 + 0,01 = 5,01:
+    до получателя доедет 5,00, и продажа пройдёт ровно по минимуму.
+    """
+    sell = ExchangeSpec(key="b", name="Б", taker_fee=0.001,
+                        rules=InstrumentRules(tick_size=0.01, step_size=0.01,
+                                              min_qty=0.01, min_notional=50.0))
+    route = Route(symbol="COIN/USDT", buy=BUY, sell=sell,
+                  network=NetworkSpec(coin="COIN", code="NET",
+                                      withdrawal_fee=0.01, min_withdrawal=0.1,
+                                      block_time_sec=60.0, confirmations=1))
+    assert route.min_volume(price_buy=10.0, price_sell=10.0) == pytest.approx(5.01)
+    # Именно с этим объёмом check() соглашается, а с меньшим - нет.
+    assert route.check(5.01, 10.0, 10.0).ok
+    assert not route.check(5.00, 10.0, 10.0).ok
+
+
+def test_min_volume_and_check_agree_on_the_boundary() -> None:
+    """Две функции не должны расходиться в определении допустимого объёма."""
+    for price in (1.0, 10.0, 100.0):
+        v = ROUTE.round_volume(ROUTE.min_volume(price, price) + ROUTE.volume_step)
+        assert ROUTE.check(v, price, price).ok
