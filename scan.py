@@ -53,6 +53,16 @@ COLUMNS = [
     "gross", "fee_buy", "fee_sell", "withdrawal", "net", "net_bps",
     "complete", "feasible", "transfer_time_sec",
     "latency_buy_ms", "latency_sell_ms",
+    # Второй оптимум - по прибыли, отнесённой к обороту.
+    #
+    # Первый (колонки выше) ищет максимум прибыли в деньгах: это вопрос
+    # README, и по нему считается доля выживших. Но на убыточном маршруте
+    # он вырождается - садится на минимальный объём в несколько долларов,
+    # где фиксированная плата за вывод даёт -2000 б.п. Гистограмма чистого
+    # спреда и разложение издержек по слоям на таких точках бессмысленны:
+    # их задавит пик на минимальном объёме. Для них нужен этот оптимум.
+    "rel_volume", "rel_turnover", "rel_gross", "rel_fee_buy",
+    "rel_fee_sell", "rel_withdrawal", "rel_net", "rel_net_bps",
 ]
 
 # Статусы наблюдения. Отбракованные пишутся в лог наравне с годными:
@@ -166,6 +176,20 @@ def observe(route: Route, book_buy: OrderBook, book_sell: OrderBook,
         complete=int(best.complete),
         feasible=int(best.feasible),
     )
+
+    relative = find_optimum(route, book_buy, book_sell, objective="net_bps")
+    if relative.best is not None:
+        rel = relative.best
+        row.update(
+            rel_volume=rel.volume,
+            rel_turnover=round(rel.turnover, 4),
+            rel_gross=round(rel.gross, 6),
+            rel_fee_buy=round(rel.costs.fee_buy, 6),
+            rel_fee_sell=round(rel.costs.fee_sell, 6),
+            rel_withdrawal=round(rel.costs.withdrawal, 6),
+            rel_net=round(rel.net, 6),
+            rel_net_bps=round(rel.net_bps, 4),
+        )
     return row
 
 
